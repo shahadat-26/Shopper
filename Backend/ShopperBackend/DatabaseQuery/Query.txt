@@ -640,3 +640,516 @@ ON CONFLICT (Slug) DO NOTHING;
 ALTER TABLE Products
 ADD COLUMN ImageData BYTEA,
 ADD COLUMN ImageMimeType VARCHAR(50);
+
+
+-- 1. Delete all existing vendor-related data
+DELETE FROM orderitems;
+DELETE FROM orders;
+DELETE FROM products;
+DELETE FROM vendors;
+DELETE FROM users WHERE role = 'Vendor';
+
+-- 2. Reset sequences if needed (optional)
+ALTER SEQUENCE vendors_id_seq RESTART WITH 1;
+ALTER SEQUENCE products_id_seq RESTART WITH 1;
+ALTER SEQUENCE orders_id_seq RESTART WITH 1;
+ALTER SEQUENCE orderitems_id_seq RESTART WITH 1;
+
+
+SET session_replication_role = 'replica';
+
+-- Delete everything in order
+DELETE FROM orderitems;
+DELETE FROM orders;
+DELETE FROM cartitems;
+DELETE FROM reviews;
+DELETE FROM products;
+DELETE FROM productattributes;
+DELETE FROM productvariations;
+DELETE FROM vendors;
+DELETE FROM addresses;
+DELETE FROM notifications;
+DELETE FROM coupons;
+DELETE FROM users;
+DELETE FROM categories;
+DELETE FROM banners;
+
+-- Re-enable foreign key checks
+SET session_replication_role = 'origin';
+
+-- Reset all sequences to 1
+ALTER SEQUENCE users_id_seq RESTART WITH 1;
+ALTER SEQUENCE vendors_id_seq RESTART WITH 1;
+ALTER SEQUENCE products_id_seq RESTART WITH 1;
+ALTER SEQUENCE orders_id_seq RESTART WITH 1;
+ALTER SEQUENCE orderitems_id_seq RESTART WITH 1;
+ALTER SEQUENCE categories_id_seq RESTART WITH 1;
+ALTER SEQUENCE addresses_id_seq RESTART WITH 1;
+ALTER SEQUENCE reviews_id_seq RESTART WITH 1;
+ALTER SEQUENCE notifications_id_seq RESTART WITH 1;
+ALTER SEQUENCE coupons_id_seq RESTART WITH 1;
+ALTER SEQUENCE banners_id_seq RESTART WITH 1;
+ALTER SEQUENCE cartitems_id_seq RESTART WITH 1;
+
+-- ================================================
+-- SETUP INITIAL DATA
+-- ================================================
+
+-- 1. Create categories
+INSERT INTO categories (name, slug, description, imageurl, isactive, createdat, updatedat)
+VALUES
+('Electronics', 'electronics', 'Electronic items', 'https://via.placeholder.com/300', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Clothing', 'clothing', 'Fashion and apparel', 'https://via.placeholder.com/300', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Books', 'books', 'Books and publications', 'https://via.placeholder.com/300', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- ================================================
+-- VERIFICATION
+-- ================================================
+SELECT 'CLEANUP COMPLETE!' as message;
+
+SELECT
+    'Users' as table_name, COUNT(*) as count FROM users
+UNION ALL
+SELECT 'Vendors', COUNT(*) FROM vendors
+UNION ALL
+SELECT 'Products', COUNT(*) FROM products
+UNION ALL
+SELECT 'Orders', COUNT(*) FROM orders
+UNION ALL
+SELECT 'Categories', COUNT(*) FROM categories;
+
+
+
+
+-- =====================================================
+-- IMMEDIATE FIX FOR VENDOR ORDERS
+-- =====================================================
+-- This script will make orders appear in vendor dashboard
+
+-- STEP 1: Check current state
+SELECT 'CURRENT VENDORS:' as info;
+SELECT id, userid, storename FROM vendors;
+
+SELECT 'CURRENT PRODUCTS AND THEIR VENDORS:' as info;
+SELECT id, name, vendorid FROM products;
+
+SELECT 'CURRENT ORDERITEMS AND THEIR VENDORS:' as info;
+SELECT oi.id, oi.orderid, oi.productid, oi.vendorid as current_vendorid, p.vendorid as product_vendorid
+FROM orderitems oi
+LEFT JOIN products p ON oi.productid = p.id;
+
+-- STEP 2: THE FIX - Copy vendorid from products to orderitems
+UPDATE orderitems oi
+SET vendorid = p.vendorid
+FROM products p
+WHERE oi.productid = p.id
+AND (oi.vendorid IS NULL OR oi.vendorid != p.vendorid);
+
+-- STEP 3: Verify the fix
+SELECT 'AFTER FIX - ORDERITEMS WITH VENDORS:' as info;
+SELECT oi.id, oi.orderid, oi.productid, oi.vendorid, p.name as product_name
+FROM orderitems oi
+LEFT JOIN products p ON oi.productid = p.id;
+
+-- STEP 4: Check what vendor will see (assuming vendor id is 1)
+-- CHANGE THE NUMBER 1 to your actual vendor id if different
+SELECT 'ORDERS VISIBLE TO VENDOR 1:' as info;
+SELECT DISTINCT o.id, o.ordernumber, o.status, o.totalamount, o.createdat
+FROM orders o
+INNER JOIN orderitems oi ON o.id = oi.orderid
+WHERE oi.vendorid = 1
+ORDER BY o.createdat DESC;
+
+-- STEP 5: Summary
+SELECT 'SUMMARY:' as info;
+SELECT
+    'Total Orders' as metric, COUNT(DISTINCT id) as value FROM orders
+UNION ALL
+SELECT
+    'OrderItems with VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'Orders for Vendor 1', COUNT(DISTINCT orderid) FROM orderitems WHERE vendorid = 1;
+
+
+
+
+
+
+UPDATE orderitems oi
+SET vendorid = p.vendorid
+FROM products p
+WHERE oi.productid = p.id
+AND (oi.vendorid IS NULL OR oi.vendorid != p.vendorid)
+
+
+-- =====================================================
+-- COMPLETE FIX FOR ALL ISSUES
+-- =====================================================
+
+-- STEP 1: First, let's see the current state
+SELECT '=== CURRENT STATE ===' as info;
+SELECT
+    'Total Vendors' as metric, COUNT(*) as count FROM vendors
+UNION ALL
+SELECT
+    'Products with VendorId', COUNT(*) FROM products WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'Products without VendorId', COUNT(*) FROM products WHERE vendorid IS NULL
+UNION ALL
+SELECT
+    'OrderItems with VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'OrderItems without VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NULL;
+
+-- STEP 2: Make sure ALL products have a vendorid
+-- If you only have one vendor, this will assign all products to that vendor
+UPDATE products
+SET vendorid = (SELECT id FROM vendors LIMIT 1)
+WHERE vendorid IS NULL;
+
+-- STEP 3: Fix ALL existing orderitems to have the correct vendorid from products
+UPDATE orderitems oi
+SET vendorid = p.vendorid
+FROM products p
+WHERE oi.productid = p.id
+AND (oi.vendorid IS NULL OR oi.vendorid != p.vendorid);
+
+-- STEP 4: Check if the fix worked
+SELECT '=== AFTER FIX ===' as info;
+SELECT
+    'Products with VendorId' as metric, COUNT(*) as count FROM products WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'OrderItems with VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'OrderItems without VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NULL;
+
+-- STEP 5: Show what each vendor will see
+SELECT '=== VENDOR ORDERS ===' as info;
+SELECT
+    v.id as vendor_id,
+    v.storename,
+    COUNT(DISTINCT oi.orderid) as total_orders,
+    COUNT(oi.id) as total_items,
+    COALESCE(SUM(oi.price * oi.quantity), 0) as total_revenue
+FROM vendors v
+LEFT JOIN orderitems oi ON oi.vendorid = v.id
+GROUP BY v.id, v.storename;
+
+-- STEP 6: Show specific orders for vendor 1
+SELECT '=== ORDERS FOR VENDOR 1 ===' as info;
+SELECT DISTINCT
+    o.id,
+    o.ordernumber,
+    o.status,
+    o.totalamount,
+    o.createdat,
+    COUNT(oi.id) as items_count
+FROM orders o
+INNER JOIN orderitems oi ON o.id = oi.orderid
+WHERE oi.vendorid = 1
+GROUP BY o.id, o.ordernumber, o.status, o.totalamount, o.createdat
+ORDER BY o.createdat DESC;
+
+-- STEP 7: Fix stock that was reduced twice (OPTIONAL - only if needed)
+-- This query shows products and how much was ordered
+SELECT '=== STOCK ANALYSIS ===' as info;
+SELECT
+    p.id,
+    p.name,
+    p.quantity as current_stock,
+    COALESCE(SUM(oi.quantity), 0) as total_ordered,
+    p.quantity + COALESCE(SUM(oi.quantity), 0) as should_have_been
+FROM products p
+LEFT JOIN orderitems oi ON p.id = oi.productid
+GROUP BY p.id, p.name, p.quantity
+ORDER BY p.id;
+
+-- If you need to restore stock (because it was reduced twice), uncomment and run:
+-- UPDATE products p
+-- SET quantity = p.quantity + ordered.total_ordered
+-- FROM (
+--     SELECT productid, SUM(quantity) as total_ordered
+--     FROM orderitems
+--     GROUP BY productid
+-- ) ordered
+-- WHERE p.id = ordered.productid;
+
+-- STEP 8: Final verification
+SELECT '=== FINAL CHECK ===' as info;
+SELECT
+    'Orders exist' as check_item,
+    CASE WHEN COUNT(*) > 0 THEN 'YES' ELSE 'NO' END as status
+FROM orders
+UNION ALL
+SELECT
+    'All OrderItems have VendorId',
+    CASE WHEN COUNT(*) = 0 THEN 'YES' ELSE 'NO - ' || COUNT(*)::text || ' missing' END
+FROM orderitems WHERE vendorid IS NULL
+UNION ALL
+SELECT
+    'All Products have VendorId',
+    CASE WHEN COUNT(*) = 0 THEN 'YES' ELSE 'NO - ' || COUNT(*)::text || ' missing' END
+FROM products WHERE vendorid IS NULL
+UNION ALL
+SELECT
+    'Vendor 1 has orders',
+    CASE WHEN COUNT(DISTINCT orderid) > 0 THEN 'YES - ' || COUNT(DISTINCT orderid)::text || ' orders' ELSE 'NO' END
+FROM orderitems WHERE vendorid = 1;
+
+-- Check orders in database
+SELECT
+    o.id,
+    o.ordernumber,
+    o.userid,
+    o.status,
+    o.paymentstatus,
+    o.totalamount,
+    o.createdat,
+    u.email as user_email
+FROM orders o
+LEFT JOIN users u ON o.userid = u.id
+ORDER BY o.createdat DESC
+LIMIT 10;
+
+-- Check orderitems
+SELECT
+    oi.id,
+    oi.orderid,
+    oi.productid,
+    oi.vendorid,
+    oi.productname,
+    oi.quantity,
+    oi.price,
+    oi.total
+FROM orderitems oi
+WHERE oi.orderid IN (SELECT id FROM orders ORDER BY createdat DESC LIMIT 5);
+
+-- Check if vendor ID exists in orderitems
+SELECT DISTINCT vendorid FROM orderitems WHERE vendorid IS NOT NULL;
+
+-- Check vendor data
+SELECT id, userid, storename FROM vendors;
+
+-- Fix enum columns by changing them to text type
+-- This makes the database more compatible with Entity Framework Core
+
+-- Change orders table columns
+ALTER TABLE orders
+ALTER COLUMN status TYPE text,
+ALTER COLUMN paymentmethod TYPE text,
+ALTER COLUMN paymentstatus TYPE text;
+
+-- Change users table column
+ALTER TABLE users
+ALTER COLUMN role TYPE text;
+
+-- Change payments table columns
+ALTER TABLE payments
+ALTER COLUMN paymentmethod TYPE text,
+ALTER COLUMN status TYPE text;
+
+-- Add check constraints to maintain data integrity (optional)
+-- These ensure only valid values are inserted
+
+ALTER TABLE orders
+ADD CONSTRAINT check_order_status CHECK (status IN ('Pending', 'Processing', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')),
+ADD CONSTRAINT check_payment_method CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status CHECK (paymentstatus IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+ALTER TABLE users
+ADD CONSTRAINT check_user_role CHECK (role IN ('Customer', 'Admin', 'Vendor', 'Support'));
+
+ALTER TABLE payments
+ADD CONSTRAINT check_payment_method_payments CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status_payments CHECK (status IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+
+-- Drop existing constraints first (if they exist)
+ALTER TABLE IF EXISTS orders
+DROP CONSTRAINT IF EXISTS check_order_status,
+DROP CONSTRAINT IF EXISTS check_payment_method,
+DROP CONSTRAINT IF EXISTS check_payment_status;
+
+ALTER TABLE IF EXISTS users
+DROP CONSTRAINT IF EXISTS check_user_role;
+
+ALTER TABLE IF EXISTS payments
+DROP CONSTRAINT IF EXISTS check_payment_method_payments,
+DROP CONSTRAINT IF EXISTS check_payment_status_payments;
+
+-- Now convert enum columns to text
+-- For orders table
+ALTER TABLE orders
+ALTER COLUMN status TYPE text USING status::text,
+ALTER COLUMN paymentmethod TYPE text USING paymentmethod::text,
+ALTER COLUMN paymentstatus TYPE text USING paymentstatus::text;
+
+-- For users table
+ALTER TABLE users
+ALTER COLUMN role TYPE text USING role::text;
+
+-- For payments table
+ALTER TABLE payments
+ALTER COLUMN paymentmethod TYPE text USING paymentmethod::text,
+ALTER COLUMN status TYPE text USING status::text;
+
+-- Now add check constraints to maintain data integrity
+ALTER TABLE orders
+ADD CONSTRAINT check_order_status CHECK (status IN ('Pending', 'Processing', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')),
+ADD CONSTRAINT check_payment_method CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status CHECK (paymentstatus IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+ALTER TABLE users
+ADD CONSTRAINT check_user_role CHECK (role IN ('Customer', 'Admin', 'Vendor', 'Support'));
+
+ALTER TABLE payments
+ADD CONSTRAINT check_payment_method_payments CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status_payments CHECK (status IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+-- Drop the enum types if they're no longer needed
+DROP TYPE IF EXISTS order_status CASCADE;
+DROP TYPE IF EXISTS payment_method CASCADE;
+DROP TYPE IF EXISTS payment_status CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
+-- Force fix for enum columns - Complete solution
+-- This script will drop and recreate columns to ensure enum types are removed
+
+-- Step 1: Drop existing check constraints if they exist
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_order_status;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_payment_method;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_payment_status;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS check_user_role;
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS check_payment_method_payments;
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS check_payment_status_payments;
+
+-- Step 2: Add temporary columns with text type
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS status_temp text,
+ADD COLUMN IF NOT EXISTS paymentmethod_temp text,
+ADD COLUMN IF NOT EXISTS paymentstatus_temp text;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS role_temp text;
+
+ALTER TABLE payments
+ADD COLUMN IF NOT EXISTS paymentmethod_temp text,
+ADD COLUMN IF NOT EXISTS status_temp text;
+
+-- Step 3: Copy data from enum columns to temp columns
+UPDATE orders
+SET status_temp = status::text,
+    paymentmethod_temp = paymentmethod::text,
+    paymentstatus_temp = paymentstatus::text;
+
+UPDATE users
+SET role_temp = role::text;
+
+UPDATE payments
+SET paymentmethod_temp = paymentmethod::text,
+    status_temp = status::text;
+
+-- Step 4: Drop the original enum columns
+ALTER TABLE orders
+DROP COLUMN IF EXISTS status,
+DROP COLUMN IF EXISTS paymentmethod,
+DROP COLUMN IF EXISTS paymentstatus;
+
+ALTER TABLE users
+DROP COLUMN IF EXISTS role;
+
+ALTER TABLE payments
+DROP COLUMN IF EXISTS paymentmethod,
+DROP COLUMN IF EXISTS status;
+
+-- Step 5: Rename temp columns to original names
+ALTER TABLE orders
+RENAME COLUMN status_temp TO status;
+ALTER TABLE orders
+RENAME COLUMN paymentmethod_temp TO paymentmethod;
+ALTER TABLE orders
+RENAME COLUMN paymentstatus_temp TO paymentstatus;
+
+ALTER TABLE users
+RENAME COLUMN role_temp TO role;
+
+ALTER TABLE payments
+RENAME COLUMN paymentmethod_temp TO paymentmethod;
+ALTER TABLE payments
+RENAME COLUMN status_temp TO status;
+
+-- Step 6: Add NOT NULL constraints where needed
+ALTER TABLE orders
+ALTER COLUMN status SET NOT NULL,
+ALTER COLUMN paymentmethod SET NOT NULL,
+ALTER COLUMN paymentstatus SET NOT NULL;
+
+ALTER TABLE users
+ALTER COLUMN role SET NOT NULL;
+
+ALTER TABLE payments
+ALTER COLUMN paymentmethod SET NOT NULL,
+ALTER COLUMN status SET NOT NULL;
+
+-- Step 7: Set default values
+ALTER TABLE orders
+ALTER COLUMN status SET DEFAULT 'Pending',
+ALTER COLUMN paymentstatus SET DEFAULT 'Pending';
+
+ALTER TABLE users
+ALTER COLUMN role SET DEFAULT 'Customer';
+
+ALTER TABLE payments
+ALTER COLUMN status SET DEFAULT 'Pending';
+
+-- Step 8: Add check constraints for data validation
+ALTER TABLE orders
+ADD CONSTRAINT check_order_status CHECK (status IN ('Pending', 'Processing', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')),
+ADD CONSTRAINT check_payment_method CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status CHECK (paymentstatus IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+ALTER TABLE users
+ADD CONSTRAINT check_user_role CHECK (role IN ('Customer', 'Admin', 'Vendor', 'Support'));
+
+ALTER TABLE payments
+ADD CONSTRAINT check_payment_method_payments CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status_payments CHECK (status IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+-- Step 9: Drop the enum types if they exist
+DROP TYPE IF EXISTS order_status CASCADE;
+DROP TYPE IF EXISTS payment_method CASCADE;
+DROP TYPE IF EXISTS payment_status CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
+-- Verify the changes
+SELECT
+    column_name,
+    data_type,
+    column_default,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'orders'
+    AND column_name IN ('status', 'paymentmethod', 'paymentstatus');
+
+SELECT
+    column_name,
+    data_type,
+    column_default,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'users'
+    AND column_name = 'role';
+
+SELECT
+    column_name,
+    data_type,
+    column_default,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'payments'
+    AND column_name IN ('paymentmethod', 'status');

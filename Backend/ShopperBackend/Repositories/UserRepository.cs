@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
 using ShopperBackend.Data;
 using ShopperBackend.Models;
 
@@ -21,97 +20,130 @@ namespace ShopperBackend.Repositories
 
     public class UserRepository : IUserRepository
     {
-        private readonly IDatabaseConnection _db;
+        private readonly ShopperDbContext _context;
 
-        public UserRepository(IDatabaseConnection db)
+        public UserRepository(ShopperDbContext context)
         {
-            _db = db;
+            _context = context;
         }
 
         public async Task<User> GetByIdAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Users WHERE Id = @Id";
-            return await connection.QueryFirstOrDefaultAsync<User>(query, new { Id = id });
+            return await _context.Users.FindAsync(id);
         }
 
         public async Task<IEnumerable<User>> GetAllAsync()
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Users ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<User>(query);
+            return await _context.Users
+                .OrderByDescending(u => u.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<int> CreateAsync(User entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, Role, IsEmailVerified, EmailVerificationToken, IsActive, CreatedAt, UpdatedAt)
-                         VALUES (@Email, @PasswordHash, @FirstName, @LastName, @PhoneNumber, @Role::user_role, @IsEmailVerified, @EmailVerificationToken, @IsActive, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                         RETURNING Id";
-            return await connection.ExecuteScalarAsync<int>(query, entity);
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Users.Add(entity);
+
+            await _context.SaveChangesAsync();
+
+            return entity.Id;
         }
 
         public async Task<bool> UpdateAsync(User entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"UPDATE Users SET Email = @Email, FirstName = @FirstName, LastName = @LastName,
-                         PhoneNumber = @PhoneNumber, Role = @Role::user_role, IsActive = @IsActive, UpdatedAt = CURRENT_TIMESTAMP
-                         WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Users.Update(entity);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = "DELETE FROM Users WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, new { Id = id });
+            var user = await _context.Users.FindAsync(id);
+
+            if (user == null)
+                return false;
+
+            _context.Users.Remove(user);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<User> GetByEmailAsync(string email)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Users WHERE Email = @Email";
-            return await connection.QueryFirstOrDefaultAsync<User>(query, new { Email = email });
+            return await _context.Users
+                .Where(u => u.Email == email)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<User> GetByRefreshTokenAsync(string refreshToken)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Users WHERE RefreshToken = @RefreshToken AND RefreshTokenExpiry > CURRENT_TIMESTAMP";
-            return await connection.QueryFirstOrDefaultAsync<User>(query, new { RefreshToken = refreshToken });
+            var now = DateTime.UtcNow;
+
+            return await _context.Users
+                .Where(u => u.RefreshToken == refreshToken && u.RefreshTokenExpiry > now)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<bool> UpdateRefreshTokenAsync(int userId, string refreshToken, DateTime expiry)
         {
-            using var connection = _db.CreateConnection();
-            var query = "UPDATE Users SET RefreshToken = @RefreshToken, RefreshTokenExpiry = @Expiry WHERE Id = @UserId";
-            var result = await connection.ExecuteAsync(query, new { UserId = userId, RefreshToken = refreshToken, Expiry = expiry });
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+                return false;
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiry = expiry;
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> UpdatePasswordAsync(int userId, string passwordHash)
         {
-            using var connection = _db.CreateConnection();
-            var query = "UPDATE Users SET PasswordHash = @PasswordHash, PasswordResetToken = NULL, PasswordResetTokenExpiry = NULL WHERE Id = @UserId";
-            var result = await connection.ExecuteAsync(query, new { UserId = userId, PasswordHash = passwordHash });
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+                return false;
+
+            user.PasswordHash = passwordHash;
+            user.PasswordResetToken = null;
+            user.PasswordResetTokenExpiry = null;
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> VerifyEmailAsync(int userId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "UPDATE Users SET IsEmailVerified = true, EmailVerificationToken = NULL WHERE Id = @UserId";
-            var result = await connection.ExecuteAsync(query, new { UserId = userId });
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+                return false;
+
+            user.IsEmailVerified = true;
+            user.EmailVerificationToken = null;
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<IEnumerable<User>> GetUsersByRoleAsync(string role)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Users WHERE Role = @Role::user_role ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<User>(query, new { Role = role });
+            return await _context.Users
+                .Where(u => u.Role == role)
+                .OrderByDescending(u => u.CreatedAt)
+                .ToListAsync();
         }
     }
 }

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
 using ShopperBackend.Data;
 using ShopperBackend.Models;
 
@@ -21,170 +21,169 @@ namespace ShopperBackend.Repositories
 
     public class OrderRepository : IOrderRepository
     {
-        private readonly IDatabaseConnection _db;
+        private readonly ShopperDbContext _context;
 
-        public OrderRepository(IDatabaseConnection db)
+        public OrderRepository(ShopperDbContext context)
         {
-            _db = db;
+            _context = context;
         }
 
         public async Task<Order> GetByIdAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT o.*, u.*, sa.*, ba.* FROM Orders o
-                         LEFT JOIN Users u ON o.UserId = u.Id
-                         LEFT JOIN Addresses sa ON o.ShippingAddressId = sa.Id
-                         LEFT JOIN Addresses ba ON o.BillingAddressId = ba.Id
-                         WHERE o.Id = @Id";
-
-            var orders = await connection.QueryAsync<Order, User, Address, Address, Order>(
-                query,
-                (order, user, shipping, billing) =>
-                {
-                    order.User = user;
-                    order.ShippingAddress = shipping;
-                    order.BillingAddress = billing;
-                    return order;
-                },
-                new { Id = id },
-                splitOn: "Id,Id,Id"
-            );
-
-            return orders.FirstOrDefault();
+            return await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.ShippingAddress)
+                .Include(o => o.BillingAddress)
+                .FirstOrDefaultAsync(o => o.Id == id);
         }
 
         public async Task<IEnumerable<Order>> GetAllAsync()
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Orders ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<Order>(query);
+            return await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.ShippingAddress)
+                .Include(o => o.BillingAddress)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<int> CreateAsync(Order entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"INSERT INTO Orders (UserId, OrderNumber, Status, SubTotal, TaxAmount, ShippingAmount,
-                         DiscountAmount, TotalAmount, CouponId, PaymentMethod, PaymentStatus, Notes,
-                         ShippingAddressId, BillingAddressId, CreatedAt, UpdatedAt)
-                         VALUES (@UserId, @OrderNumber, @Status::order_status, @SubTotal, @TaxAmount, @ShippingAmount,
-                         @DiscountAmount, @TotalAmount, @CouponId, @PaymentMethod::payment_method, @PaymentStatus::payment_status, @Notes,
-                         @ShippingAddressId, @BillingAddressId, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                         RETURNING Id";
-            return await connection.ExecuteScalarAsync<int>(query, entity);
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Orders.Add(entity);
+
+            await _context.SaveChangesAsync();
+
+            return entity.Id;
         }
 
         public async Task<bool> UpdateAsync(Order entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"UPDATE Orders SET Status = @Status::order_status, PaymentStatus = @PaymentStatus::payment_status,
-                         TrackingNumber = @TrackingNumber, EstimatedDelivery = @EstimatedDelivery,
-                         UpdatedAt = CURRENT_TIMESTAMP WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Orders.Update(entity);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = "DELETE FROM Orders WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, new { Id = id });
+            var order = await _context.Orders.FindAsync(id);
+
+            if (order == null)
+                return false;
+
+            _context.Orders.Remove(order);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<Order> GetByOrderNumberAsync(string orderNumber)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT o.*, u.*, sa.*, ba.* FROM Orders o
-                         LEFT JOIN Users u ON o.UserId = u.Id
-                         LEFT JOIN Addresses sa ON o.ShippingAddressId = sa.Id
-                         LEFT JOIN Addresses ba ON o.BillingAddressId = ba.Id
-                         WHERE o.OrderNumber = @OrderNumber";
-
-            var orders = await connection.QueryAsync<Order, User, Address, Address, Order>(
-                query,
-                (order, user, shipping, billing) =>
-                {
-                    order.User = user;
-                    order.ShippingAddress = shipping;
-                    order.BillingAddress = billing;
-                    return order;
-                },
-                new { OrderNumber = orderNumber },
-                splitOn: "Id,Id,Id"
-            );
-
-            return orders.FirstOrDefault();
+            return await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.ShippingAddress)
+                .Include(o => o.BillingAddress)
+                .Where(o => o.OrderNumber == orderNumber)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<Order>> GetUserOrdersAsync(int userId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Orders WHERE UserId = @UserId ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<Order>(query, new { UserId = userId });
+            return await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.ShippingAddress)
+                .Include(o => o.BillingAddress)
+                .Where(o => o.UserId == userId)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Order>> GetVendorOrdersAsync(int vendorId)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT DISTINCT o.* FROM Orders o
-                         INNER JOIN OrderItems oi ON o.Id = oi.OrderId
-                         WHERE oi.VendorId = @VendorId
-                         ORDER BY o.CreatedAt DESC";
-
-            var orders = await connection.QueryAsync<Order>(query, new { VendorId = vendorId });
-
-            foreach (var order in orders)
-            {
-                order.OrderItems = (await GetOrderItemsAsync(order.Id)).ToList();
-            }
-
-            return orders;
+            return await _context.Orders
+                .Include(o => o.User)
+                .Include(o => o.OrderItems.Where(oi => oi.VendorId == vendorId))
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.ShippingAddress)
+                .Include(o => o.BillingAddress)
+                .Where(o => o.OrderItems.Any(oi => oi.VendorId == vendorId))
+                .OrderByDescending(o => o.CreatedAt)
+                .Distinct()
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<OrderItem>> GetOrderItemsAsync(int orderId)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT oi.*, p.* FROM OrderItems oi
-                         LEFT JOIN Products p ON oi.ProductId = p.Id
-                         WHERE oi.OrderId = @OrderId";
+            var items = await _context.OrderItems
+                .Include(oi => oi.Product)
+                .Where(oi => oi.OrderId == orderId)
+                .ToListAsync();
 
-            return await connection.QueryAsync<OrderItem, Product, OrderItem>(
-                query,
-                (item, product) =>
+            foreach (var item in items)
+            {
+                if (item.Price == 0 && item.Product != null)
                 {
-                    item.Product = product;
-                    return item;
-                },
-                new { OrderId = orderId },
-                splitOn: "Id"
-            );
+                    item.Price = item.Product.Price;
+                }
+
+                // Calculate subtotal if it's null or 0
+                if (!item.Subtotal.HasValue || item.Subtotal == 0)
+                {
+                    item.Subtotal = item.Price * item.Quantity;
+                }
+            }
+
+            return items;
         }
 
         public async Task<int> CreateOrderItemAsync(OrderItem item)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"INSERT INTO OrderItems (OrderId, ProductId, VariationId, VendorId, ProductName,
-                         ProductSKU, Quantity, Price, Discount, Tax, Total, Status, CreatedAt, UpdatedAt)
-                         VALUES (@OrderId, @ProductId, @VariationId, @VendorId, @ProductName,
-                         @ProductSKU, @Quantity, @Price, @Discount, @Tax, @Total, @Status::order_status,
-                         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                         RETURNING Id";
-            return await connection.ExecuteScalarAsync<int>(query, item);
+            item.CreatedAt = DateTime.UtcNow;
+            item.UpdatedAt = DateTime.UtcNow;
+
+            _context.OrderItems.Add(item);
+
+            await _context.SaveChangesAsync();
+
+            return item.Id;
         }
 
         public async Task<bool> UpdateOrderStatusAsync(int orderId, string status)
         {
-            using var connection = _db.CreateConnection();
-            var query = "UPDATE Orders SET Status = @Status::order_status, UpdatedAt = CURRENT_TIMESTAMP WHERE Id = @OrderId";
-            var result = await connection.ExecuteAsync(query, new { OrderId = orderId, Status = status });
+            var order = await _context.Orders.FindAsync(orderId);
+
+            if (order == null)
+                return false;
+
+            order.Status = status;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> UpdatePaymentStatusAsync(int orderId, string status)
         {
-            using var connection = _db.CreateConnection();
-            var query = "UPDATE Orders SET PaymentStatus = @Status::payment_status, UpdatedAt = CURRENT_TIMESTAMP WHERE Id = @OrderId";
-            var result = await connection.ExecuteAsync(query, new { OrderId = orderId, Status = status });
+            var order = await _context.Orders.FindAsync(orderId);
+
+            if (order == null)
+                return false;
+
+            order.PaymentStatus = status;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
     }

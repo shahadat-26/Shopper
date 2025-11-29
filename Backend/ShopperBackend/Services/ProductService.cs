@@ -266,12 +266,10 @@ namespace ShopperBackend.Services
         {
             string primaryImage = null;
 
-            // If product has ImageData, convert to base64
             if (product.ImageData != null && product.ImageMimeType != null)
             {
                 primaryImage = $"data:{product.ImageMimeType};base64,{Convert.ToBase64String(product.ImageData)}";
             }
-            // Otherwise use ImageUrl if available
             else if (!string.IsNullOrEmpty(product.ImageUrl))
             {
                 primaryImage = product.ImageUrl;

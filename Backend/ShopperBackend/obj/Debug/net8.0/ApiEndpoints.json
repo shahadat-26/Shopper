@@ -581,6 +581,43 @@
   },
   {
     "ContainingType": "ShopperBackend.Controllers.VendorController",
+    "Method": "DeclineOrder",
+    "RelativePath": "api/Vendor/orders/{orderId}/decline",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "orderId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "declineDto",
+        "Type": "System.Object",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ShopperBackend.Controllers.VendorController",
+    "Method": "DeliverOrder",
+    "RelativePath": "api/Vendor/orders/{orderId}/deliver",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "orderId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ShopperBackend.Controllers.VendorController",
     "Method": "UpdateOrderStatus",
     "RelativePath": "api/Vendor/orders/{orderId}/status",
     "HttpMethod": "PUT",

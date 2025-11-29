@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
 using ShopperBackend.Data;
 using ShopperBackend.Models;
 
@@ -16,82 +17,99 @@ namespace ShopperBackend.Repositories
 
     public class AddressRepository : IAddressRepository
     {
-        private readonly IDatabaseConnection _db;
+        private readonly ShopperDbContext _context;
 
-        public AddressRepository(IDatabaseConnection db)
+        public AddressRepository(ShopperDbContext context)
         {
-            _db = db;
+            _context = context;
         }
 
         public async Task<Address> GetByIdAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Addresses WHERE Id = @Id";
-            return await connection.QueryFirstOrDefaultAsync<Address>(query, new { Id = id });
+            return await _context.Addresses.FindAsync(id);
         }
 
         public async Task<IEnumerable<Address>> GetAllAsync()
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Addresses ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<Address>(query);
+            return await _context.Addresses
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<int> CreateAsync(Address entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"INSERT INTO Addresses (UserId, AddressLine1, AddressLine2, City, State, Country,
-                         PostalCode, IsDefault, AddressType, CreatedAt, UpdatedAt)
-                         VALUES (@UserId, @AddressLine1, @AddressLine2, @City, @State, @Country,
-                         @PostalCode, @IsDefault, @AddressType, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                         RETURNING Id";
-            return await connection.ExecuteScalarAsync<int>(query, entity);
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Addresses.Add(entity);
+
+            await _context.SaveChangesAsync();
+
+            return entity.Id;
         }
 
         public async Task<bool> UpdateAsync(Address entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"UPDATE Addresses SET AddressLine1 = @AddressLine1, AddressLine2 = @AddressLine2,
-                         City = @City, State = @State, Country = @Country, PostalCode = @PostalCode,
-                         IsDefault = @IsDefault, AddressType = @AddressType, UpdatedAt = CURRENT_TIMESTAMP
-                         WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Addresses.Update(entity);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = "DELETE FROM Addresses WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, new { Id = id });
+            var address = await _context.Addresses.FindAsync(id);
+
+            if (address == null)
+                return false;
+
+            _context.Addresses.Remove(address);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<IEnumerable<Address>> GetUserAddressesAsync(int userId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Addresses WHERE UserId = @UserId ORDER BY IsDefault DESC, CreatedAt DESC";
-            return await connection.QueryAsync<Address>(query, new { UserId = userId });
+            return await _context.Addresses
+                .Where(a => a.UserId == userId)
+                .OrderByDescending(a => a.IsDefault)
+                .ThenByDescending(a => a.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<Address> GetDefaultAddressAsync(int userId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Addresses WHERE UserId = @UserId AND IsDefault = true LIMIT 1";
-            return await connection.QueryFirstOrDefaultAsync<Address>(query, new { UserId = userId });
+            return await _context.Addresses
+                .Where(a => a.UserId == userId && a.IsDefault)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<bool> SetDefaultAddressAsync(int userId, int addressId)
         {
-            using var connection = _db.CreateConnection();
+            var userAddresses = await _context.Addresses
+                .Where(a => a.UserId == userId)
+                .ToListAsync();
 
-            await connection.ExecuteAsync(
-                "UPDATE Addresses SET IsDefault = false WHERE UserId = @UserId",
-                new { UserId = userId });
+            foreach (var address in userAddresses)
+            {
+                address.IsDefault = false;
+            }
 
-            var result = await connection.ExecuteAsync(
-                "UPDATE Addresses SET IsDefault = true WHERE Id = @AddressId AND UserId = @UserId",
-                new { AddressId = addressId, UserId = userId });
+            var targetAddress = await _context.Addresses
+                .Where(a => a.Id == addressId && a.UserId == userId)
+                .FirstOrDefaultAsync();
+
+            if (targetAddress == null)
+                return false;
+
+            targetAddress.IsDefault = true;
+
+            var result = await _context.SaveChangesAsync();
 
             return result > 0;
         }

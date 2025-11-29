@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
 using ShopperBackend.Data;
 using ShopperBackend.DTOs;
 using ShopperBackend.Models;
@@ -23,236 +23,220 @@ namespace ShopperBackend.Repositories
 
     public class ProductRepository : IProductRepository
     {
-        private readonly IDatabaseConnection _db;
+        private readonly ShopperDbContext _context;
 
-        public ProductRepository(IDatabaseConnection db)
+        public ProductRepository(ShopperDbContext context)
         {
-            _db = db;
+            _context = context;
         }
 
         public async Task<Product> GetByIdAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT p.*, v.*, c.* FROM Products p
-                         LEFT JOIN Vendors v ON p.VendorId = v.Id
-                         LEFT JOIN Categories c ON p.CategoryId = c.Id
-                         WHERE p.Id = @Id";
-
-            var products = await connection.QueryAsync<Product, Vendor, Category, Product>(
-                query,
-                (product, vendor, category) =>
-                {
-                    product.Vendor = vendor;
-                    product.Category = category;
-                    return product;
-                },
-                new { Id = id },
-                splitOn: "Id,Id"
-            );
-
-            return products.FirstOrDefault();
+            return await _context.Products
+                .Include(p => p.Vendor)
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task<IEnumerable<Product>> GetAllAsync()
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Products WHERE IsActive = true ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<Product>(query);
+            return await _context.Products
+                .Where(p => p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<int> CreateAsync(Product entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"INSERT INTO Products (VendorId, CategoryId, Name, Slug, Description, ShortDescription, SKU, Brand, ImageUrl, ImageData, ImageMimeType, Price, CompareAtPrice, Cost,
-                         Quantity, LowStockThreshold, Weight, Length, Width, Height, IsFeatured, IsDigital, IsActive, MetaTitle, MetaDescription, MetaKeywords)
-                         VALUES (@VendorId, @CategoryId, @Name, @Slug, @Description, @ShortDescription, @SKU, @Brand, @ImageUrl, @ImageData, @ImageMimeType, @Price, @CompareAtPrice, @Cost,
-                         @Quantity, @LowStockThreshold, @Weight, @Length, @Width, @Height, @IsFeatured, @IsDigital, @IsActive, @MetaTitle, @MetaDescription, @MetaKeywords)
-                         RETURNING Id";
-            return await connection.ExecuteScalarAsync<int>(query, entity);
+            entity.CreatedAt = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Products.Add(entity);
+
+            await _context.SaveChangesAsync();
+
+            return entity.Id;
         }
 
         public async Task<bool> UpdateAsync(Product entity)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"UPDATE Products SET CategoryId = @CategoryId, Name = @Name, Description = @Description, ShortDescription = @ShortDescription,
-                         SKU = @SKU, Brand = @Brand, ImageUrl = @ImageUrl, ImageData = @ImageData, ImageMimeType = @ImageMimeType,
-                         Price = @Price, CompareAtPrice = @CompareAtPrice, Cost = @Cost, Quantity = @Quantity, LowStockThreshold = @LowStockThreshold,
-                         Weight = @Weight, Length = @Length, Width = @Width, Height = @Height, IsFeatured = @IsFeatured, IsDigital = @IsDigital,
-                         IsActive = @IsActive, MetaTitle = @MetaTitle, MetaDescription = @MetaDescription, MetaKeywords = @MetaKeywords, UpdatedAt = @UpdatedAt
-                         WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            _context.Products.Update(entity);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            using var connection = _db.CreateConnection();
-            var query = "DELETE FROM Products WHERE Id = @Id";
-            var result = await connection.ExecuteAsync(query, new { Id = id });
+            var product = await _context.Products.FindAsync(id);
+
+            if (product == null)
+                return false;
+
+            _context.Products.Remove(product);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<Product> GetBySlugAsync(string slug)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT p.*, v.*, c.* FROM Products p
-                         LEFT JOIN Vendors v ON p.VendorId = v.Id
-                         LEFT JOIN Categories c ON p.CategoryId = c.Id
-                         WHERE p.Slug = @Slug AND p.IsActive = true";
-
-            var products = await connection.QueryAsync<Product, Vendor, Category, Product>(
-                query,
-                (product, vendor, category) =>
-                {
-                    product.Vendor = vendor;
-                    product.Category = category;
-                    return product;
-                },
-                new { Slug = slug },
-                splitOn: "Id,Id"
-            );
-
-            return products.FirstOrDefault();
+            return await _context.Products
+                .Include(p => p.Vendor)
+                .Include(p => p.Category)
+                .Where(p => p.Slug == slug && p.IsActive)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<Product>> GetByVendorIdAsync(int vendorId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Products WHERE VendorId = @VendorId AND IsActive = true ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<Product>(query, new { VendorId = vendorId });
+            return await _context.Products
+                .Where(p => p.VendorId == vendorId && p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Product>> GetByCategoryIdAsync(int categoryId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Products WHERE CategoryId = @CategoryId AND IsActive = true ORDER BY CreatedAt DESC";
-            return await connection.QueryAsync<Product>(query, new { CategoryId = categoryId });
+            return await _context.Products
+                .Where(p => p.CategoryId == categoryId && p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Product>> GetFeaturedProductsAsync(int limit = 10)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT * FROM Products WHERE IsFeatured = true AND IsActive = true ORDER BY CreatedAt DESC LIMIT @Limit";
-            return await connection.QueryAsync<Product>(query, new { Limit = limit });
+            return await _context.Products
+                .Where(p => p.IsFeatured && p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(limit)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Product>> SearchProductsAsync(ProductSearchDto searchDto)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT * FROM Products WHERE IsActive = true";
-            var parameters = new DynamicParameters();
+            var query = _context.Products.Where(p => p.IsActive);
 
             if (!string.IsNullOrEmpty(searchDto.Keyword))
             {
-                query += " AND (LOWER(Name) LIKE @Keyword OR LOWER(Description) LIKE @Keyword)";
-                parameters.Add("Keyword", $"%{searchDto.Keyword.ToLower()}%");
+                var keyword = searchDto.Keyword.ToLower();
+                query = query.Where(p =>
+                    p.Name.ToLower().Contains(keyword) ||
+                    p.Description.ToLower().Contains(keyword));
             }
 
             if (searchDto.CategoryId.HasValue)
             {
-                query += " AND CategoryId = @CategoryId";
-                parameters.Add("CategoryId", searchDto.CategoryId.Value);
+                query = query.Where(p => p.CategoryId == searchDto.CategoryId.Value);
             }
 
             if (searchDto.MinPrice.HasValue)
             {
-                query += " AND Price >= @MinPrice";
-                parameters.Add("MinPrice", searchDto.MinPrice.Value);
+                query = query.Where(p => p.Price >= searchDto.MinPrice.Value);
             }
 
             if (searchDto.MaxPrice.HasValue)
             {
-                query += " AND Price <= @MaxPrice";
-                parameters.Add("MaxPrice", searchDto.MaxPrice.Value);
+                query = query.Where(p => p.Price <= searchDto.MaxPrice.Value);
             }
 
             if (searchDto.VendorId.HasValue)
             {
-                query += " AND VendorId = @VendorId";
-                parameters.Add("VendorId", searchDto.VendorId.Value);
+                query = query.Where(p => p.VendorId == searchDto.VendorId.Value);
             }
 
             if (searchDto.IsFeatured.HasValue)
             {
-                query += " AND IsFeatured = @IsFeatured";
-                parameters.Add("IsFeatured", searchDto.IsFeatured.Value);
+                query = query.Where(p => p.IsFeatured == searchDto.IsFeatured.Value);
             }
 
-            query += searchDto.SortBy switch
+            query = searchDto.SortBy switch
             {
-                "price_asc" => " ORDER BY Price ASC",
-                "price_desc" => " ORDER BY Price DESC",
-                "name" => " ORDER BY Name ASC",
-                "newest" => " ORDER BY CreatedAt DESC",
-                "rating" => " ORDER BY Rating DESC",
-                _ => " ORDER BY CreatedAt DESC"
+                "price_asc" => query.OrderBy(p => p.Price),
+                "price_desc" => query.OrderByDescending(p => p.Price),
+                "name" => query.OrderBy(p => p.Name),
+                "newest" => query.OrderByDescending(p => p.CreatedAt),
+                "rating" => query.OrderByDescending(p => p.Rating),
+                _ => query.OrderByDescending(p => p.CreatedAt)
             };
 
-            query += " LIMIT @PageSize OFFSET @Offset";
-            parameters.Add("PageSize", searchDto.PageSize);
-            parameters.Add("Offset", (searchDto.Page - 1) * searchDto.PageSize);
+            var results = await query
+                .Skip((searchDto.Page - 1) * searchDto.PageSize)
+                .Take(searchDto.PageSize)
+                .ToListAsync();
 
-            return await connection.QueryAsync<Product>(query, parameters);
+            return results;
         }
 
         public async Task<int> GetTotalCountAsync(ProductSearchDto searchDto)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT COUNT(*) FROM Products WHERE IsActive = true";
-            var parameters = new DynamicParameters();
+            var query = _context.Products.Where(p => p.IsActive);
 
             if (!string.IsNullOrEmpty(searchDto.Keyword))
             {
-                query += " AND (LOWER(Name) LIKE @Keyword OR LOWER(Description) LIKE @Keyword)";
-                parameters.Add("Keyword", $"%{searchDto.Keyword.ToLower()}%");
+                var keyword = searchDto.Keyword.ToLower();
+                query = query.Where(p =>
+                    p.Name.ToLower().Contains(keyword) ||
+                    p.Description.ToLower().Contains(keyword));
             }
 
             if (searchDto.CategoryId.HasValue)
             {
-                query += " AND CategoryId = @CategoryId";
-                parameters.Add("CategoryId", searchDto.CategoryId.Value);
+                query = query.Where(p => p.CategoryId == searchDto.CategoryId.Value);
             }
 
             if (searchDto.MinPrice.HasValue)
             {
-                query += " AND Price >= @MinPrice";
-                parameters.Add("MinPrice", searchDto.MinPrice.Value);
+                query = query.Where(p => p.Price >= searchDto.MinPrice.Value);
             }
 
             if (searchDto.MaxPrice.HasValue)
             {
-                query += " AND Price <= @MaxPrice";
-                parameters.Add("MaxPrice", searchDto.MaxPrice.Value);
+                query = query.Where(p => p.Price <= searchDto.MaxPrice.Value);
             }
 
             if (searchDto.VendorId.HasValue)
             {
-                query += " AND VendorId = @VendorId";
-                parameters.Add("VendorId", searchDto.VendorId.Value);
+                query = query.Where(p => p.VendorId == searchDto.VendorId.Value);
             }
 
             if (searchDto.IsFeatured.HasValue)
             {
-                query += " AND IsFeatured = @IsFeatured";
-                parameters.Add("IsFeatured", searchDto.IsFeatured.Value);
+                query = query.Where(p => p.IsFeatured == searchDto.IsFeatured.Value);
             }
 
-            return await connection.ExecuteScalarAsync<int>(query, parameters);
+            return await query.CountAsync();
         }
 
         public async Task<bool> UpdateQuantityAsync(int productId, int quantity)
         {
-            using var connection = _db.CreateConnection();
-            var query = "UPDATE Products SET Quantity = @Quantity WHERE Id = @ProductId";
-            var result = await connection.ExecuteAsync(query, new { ProductId = productId, Quantity = quantity });
+            var product = await _context.Products.FindAsync(productId);
+
+            if (product == null)
+                return false;
+
+            product.Quantity = quantity;
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> IncrementViewCountAsync(int productId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "UPDATE Products SET ViewCount = ViewCount + 1 WHERE Id = @ProductId";
-            var result = await connection.ExecuteAsync(query, new { ProductId = productId });
+            var product = await _context.Products.FindAsync(productId);
+
+            if (product == null)
+                return false;
+
+            product.ViewCount = product.ViewCount + 1;
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
     }

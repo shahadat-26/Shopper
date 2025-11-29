@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
 using ShopperBackend.Data;
 using ShopperBackend.Models;
 
@@ -19,70 +19,79 @@ namespace ShopperBackend.Repositories
 
     public class WishlistRepository : IWishlistRepository
     {
-        private readonly IDatabaseConnection _db;
+        private readonly ShopperDbContext _context;
 
-        public WishlistRepository(IDatabaseConnection db)
+        public WishlistRepository(ShopperDbContext context)
         {
-            _db = db;
+            _context = context;
         }
 
         public async Task<IEnumerable<Wishlist>> GetUserWishlistAsync(int userId)
         {
-            using var connection = _db.CreateConnection();
-            var query = @"SELECT w.*, p.* FROM Wishlists w
-                         INNER JOIN Products p ON w.ProductId = p.Id
-                         WHERE w.UserId = @UserId
-                         ORDER BY w.CreatedAt DESC";
-
-            var wishlists = await connection.QueryAsync<Wishlist, Product, Wishlist>(
-                query,
-                (wishlist, product) =>
-                {
-                    wishlist.Product = product;
-                    return wishlist;
-                },
-                new { UserId = userId },
-                splitOn: "Id"
-            );
-
-            return wishlists;
+            return await _context.Wishlists
+                .Include(w => w.Product)
+                .Where(w => w.UserId == userId)
+                .OrderByDescending(w => w.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<bool> AddToWishlistAsync(int userId, int productId)
         {
-            using var connection = _db.CreateConnection();
+            var exists = await _context.Wishlists
+                .AnyAsync(w => w.UserId == userId && w.ProductId == productId);
 
-            var checkQuery = "SELECT COUNT(*) FROM Wishlists WHERE UserId = @UserId AND ProductId = @ProductId";
-            var exists = await connection.ExecuteScalarAsync<int>(checkQuery, new { UserId = userId, ProductId = productId });
+            if (exists)
+                return false;
 
-            if (exists > 0) return false;
+            var wishlistItem = new Wishlist
+            {
+                UserId = userId,
+                ProductId = productId,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            var query = "INSERT INTO Wishlists (UserId, ProductId, CreatedAt) VALUES (@UserId, @ProductId, CURRENT_TIMESTAMP)";
-            var result = await connection.ExecuteAsync(query, new { UserId = userId, ProductId = productId });
+            _context.Wishlists.Add(wishlistItem);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> RemoveFromWishlistAsync(int userId, int productId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "DELETE FROM Wishlists WHERE UserId = @UserId AND ProductId = @ProductId";
-            var result = await connection.ExecuteAsync(query, new { UserId = userId, ProductId = productId });
+            var wishlistItem = await _context.Wishlists
+                .Where(w => w.UserId == userId && w.ProductId == productId)
+                .FirstOrDefaultAsync();
+
+            if (wishlistItem == null)
+                return false;
+
+            _context.Wishlists.Remove(wishlistItem);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
 
         public async Task<bool> IsInWishlistAsync(int userId, int productId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "SELECT COUNT(*) FROM Wishlists WHERE UserId = @UserId AND ProductId = @ProductId";
-            var count = await connection.ExecuteScalarAsync<int>(query, new { UserId = userId, ProductId = productId });
-            return count > 0;
+            return await _context.Wishlists
+                .AnyAsync(w => w.UserId == userId && w.ProductId == productId);
         }
 
         public async Task<bool> ClearWishlistAsync(int userId)
         {
-            using var connection = _db.CreateConnection();
-            var query = "DELETE FROM Wishlists WHERE UserId = @UserId";
-            var result = await connection.ExecuteAsync(query, new { UserId = userId });
+            var wishlistItems = await _context.Wishlists
+                .Where(w => w.UserId == userId)
+                .ToListAsync();
+
+            if (!wishlistItems.Any())
+                return true;
+
+            _context.Wishlists.RemoveRange(wishlistItems);
+
+            var result = await _context.SaveChangesAsync();
+
             return result > 0;
         }
     }

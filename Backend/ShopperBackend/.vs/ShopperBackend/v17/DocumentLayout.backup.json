@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\databasequery\\fix_enum_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:databasequery\\fix_enum_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -11,16 +15,48 @@
       "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:databasequery\\query.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\data\\databaseconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:data\\databaseconnection.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\data\\shopperdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:data\\shopperdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\services\\orderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:services\\orderservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\services\\vendorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:services\\vendorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\services\\categoryservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:services\\categoryservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\repositories\\productrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:repositories\\productrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\repositories\\userrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:repositories\\userrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\repositories\\orderrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:repositories\\orderrepository.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\dtos\\reviewdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:dtos\\reviewdtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|d:\\learning\\shopper\\backend\\shopperbackend\\databasequery\\fix_enum_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{11B1290D-9CA5-4F53-A921-FD290EF9FF15}|ShopperBackend.csproj|solutionrelative:databasequery\\fix_enum_columns.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
     }
   ],
   "DocumentGroupContainers": [
@@ -30,7 +66,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 28,
+          "SelectedChildIndex": 24,
           "Children": [
             {
               "$type": "Bookmark",
@@ -130,44 +166,149 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
+              "Title": "fix_enum_columns.sql ",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\DatabaseQuery\\fix_enum_columns.sql",
+              "RelativeDocumentMoniker": "DatabaseQuery\\fix_enum_columns.sql",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\DatabaseQuery\\fix_enum_columns.sql",
+              "RelativeToolTip": "DatabaseQuery\\fix_enum_columns.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-11-29T20:17:38.802Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ShopperDbContext.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\ShopperDbContext.cs",
+              "RelativeDocumentMoniker": "Data\\ShopperDbContext.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\ShopperDbContext.cs",
+              "RelativeToolTip": "Data\\ShopperDbContext.cs",
+              "ViewState": "AgIAAEkAAAAAAAAAAAAcwAUAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T19:23:38.128Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "OrderService.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Services\\OrderService.cs",
+              "RelativeDocumentMoniker": "Services\\OrderService.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Services\\OrderService.cs",
+              "RelativeToolTip": "Services\\OrderService.cs",
+              "ViewState": "AgIAAKEAAAAAAAAAAADwv68AAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T18:28:32.992Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "VendorService.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Services\\VendorService.cs",
+              "RelativeDocumentMoniker": "Services\\VendorService.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Services\\VendorService.cs",
+              "RelativeToolTip": "Services\\VendorService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T18:28:30.386Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "CategoryService.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Services\\CategoryService.cs",
+              "RelativeDocumentMoniker": "Services\\CategoryService.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Services\\CategoryService.cs",
+              "RelativeToolTip": "Services\\CategoryService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T18:28:24.36Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "ProductRepository.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Repositories\\ProductRepository.cs",
+              "RelativeDocumentMoniker": "Repositories\\ProductRepository.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Repositories\\ProductRepository.cs",
+              "RelativeToolTip": "Repositories\\ProductRepository.cs",
+              "ViewState": "AgIAABkAAAAAAAAAAAAYwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T18:28:15.221Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "UserRepository.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Repositories\\UserRepository.cs",
+              "RelativeDocumentMoniker": "Repositories\\UserRepository.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Repositories\\UserRepository.cs",
+              "RelativeToolTip": "Repositories\\UserRepository.cs",
+              "ViewState": "AgIAACsAAAAAAAAAAAAswAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T18:28:10.576Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "OrderRepository.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Repositories\\OrderRepository.cs",
+              "RelativeDocumentMoniker": "Repositories\\OrderRepository.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Repositories\\OrderRepository.cs",
+              "RelativeToolTip": "Repositories\\OrderRepository.cs",
+              "ViewState": "AgIAAJ8AAAAAAAAAAAAwwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T18:27:44.611Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "ReviewDtos.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\DTOs\\ReviewDtos.cs",
+              "RelativeDocumentMoniker": "DTOs\\ReviewDtos.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\DTOs\\ReviewDtos.cs",
+              "RelativeToolTip": "DTOs\\ReviewDtos.cs",
+              "ViewState": "AgIAADEAAAAAAAAAAAAwwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T18:27:38.554Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "Query.txt",
               "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\DatabaseQuery\\Query.txt",
               "RelativeDocumentMoniker": "DatabaseQuery\\Query.txt",
               "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\DatabaseQuery\\Query.txt",
               "RelativeToolTip": "DatabaseQuery\\Query.txt",
-              "ViewState": "AgIAAG4CAAAAAAAAAAAQwIECAAAlAAAAAAAAAA==",
+              "ViewState": "AgIAAGUDAAAAAAAAAAAgwIUDAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
               "WhenOpened": "2025-11-28T15:52:50.729Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "DatabaseConnection.cs",
-              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\DatabaseConnection.cs",
-              "RelativeDocumentMoniker": "Data\\DatabaseConnection.cs",
-              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\DatabaseConnection.cs",
-              "RelativeToolTip": "Data\\DatabaseConnection.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAqwBUAAAAvAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-28T15:47:19.215Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "AppDbContext.cs",
               "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\AppDbContext.cs",
               "RelativeDocumentMoniker": "Data\\AppDbContext.cs",
               "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\AppDbContext.cs",
               "RelativeToolTip": "Data\\AppDbContext.cs",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAowAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAowAUAAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-28T15:47:16.208Z"
+              "WhenOpened": "2025-11-28T15:47:16.208Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 12,
               "Title": "appsettings.json",
               "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\appsettings.json",
               "RelativeDocumentMoniker": "appsettings.json",
@@ -179,13 +320,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Program.cs",
               "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
               "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Program.cs",
               "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAGAAAAAAAAAAAAAWwHUAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAGoAAAAAAAAAAIAwwHoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-28T14:27:05.228Z",
               "EditorCaption": ""

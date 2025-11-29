@@ -136,6 +136,32 @@ namespace ShopperBackend.Controllers
             return NoContent();
         }
 
+        [HttpPut("orders/{orderId}/decline")]
+        public async Task<IActionResult> DeclineOrder(int orderId, [FromBody] dynamic declineDto)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var vendor = await _vendorService.GetVendorByUserIdAsync(userId);
+            if (vendor == null)
+            {
+                return BadRequest("Vendor profile not found.");
+            }
+            await _vendorService.UpdateOrderStatusAsync(orderId, vendor.Id, "Cancelled");
+            return NoContent();
+        }
+
+        [HttpPut("orders/{orderId}/deliver")]
+        public async Task<IActionResult> DeliverOrder(int orderId)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var vendor = await _vendorService.GetVendorByUserIdAsync(userId);
+            if (vendor == null)
+            {
+                return BadRequest("Vendor profile not found.");
+            }
+            await _vendorService.UpdateOrderStatusAsync(orderId, vendor.Id, "Delivered");
+            return NoContent();
+        }
+
         [HttpGet("analytics")]
         public async Task<ActionResult<VendorAnalyticsDto>> GetAnalytics()
         {

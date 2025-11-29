@@ -17,14 +17,14 @@ namespace ShopperBackend.Models
         public int? CouponId { get; set; }
         public string PaymentMethod { get; set; }
         public string PaymentStatus { get; set; }
-        public string Notes { get; set; }
+        public string? Notes { get; set; }
         public int? ShippingAddressId { get; set; }
         public int? BillingAddressId { get; set; }
-        public string TrackingNumber { get; set; }
+        public string? TrackingNumber { get; set; }
         public DateTime? EstimatedDelivery { get; set; }
         public DateTime? DeliveredAt { get; set; }
         public DateTime? CancelledAt { get; set; }
-        public string CancellationReason { get; set; }
+        public string? CancellationReason { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

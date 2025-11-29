@@ -26,7 +26,6 @@ namespace ShopperBackend.Controllers
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                createDto.PaymentMethod = "CashOnDelivery";
                 var order = await _orderService.CreateCODOrderAsync(userId, createDto);
                 return Ok(order);
             }

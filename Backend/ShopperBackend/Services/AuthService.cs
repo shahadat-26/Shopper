@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using BCrypt.Net;
+using ShopperBackend.Data;
 using ShopperBackend.DTOs;
 using ShopperBackend.Helpers;
 using ShopperBackend.Models;
@@ -23,11 +24,13 @@ namespace ShopperBackend.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly JwtTokenHelper _jwtTokenHelper;
+        private readonly ShopperDbContext _context;
 
-        public AuthService(IUserRepository userRepository, JwtTokenHelper jwtTokenHelper)
+        public AuthService(IUserRepository userRepository, JwtTokenHelper jwtTokenHelper, ShopperDbContext context)
         {
             _userRepository = userRepository;
             _jwtTokenHelper = jwtTokenHelper;
+            _context = context;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto)
@@ -52,6 +55,21 @@ namespace ShopperBackend.Services
             };
 
             user.Id = await _userRepository.CreateAsync(user);
+
+            if (user.Role == "Vendor")
+            {
+                var vendor = new Vendor
+                {
+                    UserId = user.Id,
+                    StoreName = $"{registerDto.FirstName}'s Store",
+                    BusinessEmail = user.Email,
+                    IsApproved = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Vendors.Add(vendor);
+                await _context.SaveChangesAsync();
+            }
 
             var token = _jwtTokenHelper.GenerateAccessToken(user);
             var refreshToken = _jwtTokenHelper.GenerateRefreshToken();

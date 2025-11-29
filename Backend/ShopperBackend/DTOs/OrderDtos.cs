@@ -23,6 +23,7 @@ namespace ShopperBackend.DTOs
         public string Notes { get; set; }
         public DateTime? EstimatedDelivery { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public UserDto User { get; set; }
         public AddressDto ShippingAddress { get; set; }
         public AddressDto BillingAddress { get; set; }
@@ -49,9 +50,9 @@ namespace ShopperBackend.DTOs
         public string ProductSKU { get; set; }
         public int Quantity { get; set; }
         public decimal Price { get; set; }
-        public decimal Discount { get; set; }
-        public decimal Tax { get; set; }
-        public decimal Subtotal { get; set; }
+        public decimal? Discount { get; set; }
+        public decimal? Tax { get; set; }
+        public decimal? Subtotal { get; set; }
         public decimal Total { get; set; }
         public string Status { get; set; }
         public ProductListDto Product { get; set; }
@@ -72,7 +73,17 @@ namespace ShopperBackend.DTOs
         public string Notes { get; set; }
 
         [Required]
-        public List<CartItemDto> CartItems { get; set; }
+        public List<OrderCartItemDto> CartItems { get; set; }
+    }
+
+    public class OrderCartItemDto
+    {
+        [Required]
+        public int ProductId { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue)]
+        public int Quantity { get; set; }
     }
 
 
@@ -81,7 +92,7 @@ namespace ShopperBackend.DTOs
         [Required]
         public string Status { get; set; }
 
-        public string TrackingNumber { get; set; }
+        public string? TrackingNumber { get; set; }
         public DateTime? EstimatedDelivery { get; set; }
     }
 

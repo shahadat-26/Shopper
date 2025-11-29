@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace ShopperBackend.Models
@@ -13,13 +14,15 @@ namespace ShopperBackend.Models
         public string PhoneNumber { get; set; }
         public string Role { get; set; }
         public bool IsEmailVerified { get; set; }
-        public string EmailVerificationToken { get; set; }
-        public string PasswordResetToken { get; set; }
+        public string? EmailVerificationToken { get; set; }
+        public string? PasswordResetToken { get; set; }
         public DateTime? PasswordResetTokenExpiry { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public bool IsActive { get; set; }
-        public string RefreshToken { get; set; }
+        public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiry { get; set; }
+
+        public ICollection<Address> Addresses { get; set; }
     }
 }

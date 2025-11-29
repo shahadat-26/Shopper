@@ -13,7 +13,7 @@ namespace ShopperBackend.Services
         Task<OrderDto> CreateCODOrderAsync(int userId, CreateOrderDto createDto);
         Task<OrderDto> GetOrderByIdAsync(int orderId);
         Task<OrderDto> GetOrderByNumberAsync(string orderNumber);
-        Task<IEnumerable<OrderListDto>> GetUserOrdersAsync(int userId);
+        Task<IEnumerable<OrderDto>> GetUserOrdersAsync(int userId);
         Task<bool> UpdateOrderStatusAsync(int orderId, UpdateOrderStatusDto statusDto);
         Task<bool> CancelOrderAsync(int orderId, int userId, CancelOrderDto cancelDto);
     }
@@ -23,12 +23,14 @@ namespace ShopperBackend.Services
         private readonly IOrderRepository _orderRepository;
         private readonly IProductRepository _productRepository;
         private readonly IAddressRepository _addressRepository;
+        private readonly IProductService _productService;
 
-        public OrderService(IOrderRepository orderRepository, IProductRepository productRepository, IAddressRepository addressRepository)
+        public OrderService(IOrderRepository orderRepository, IProductRepository productRepository, IAddressRepository addressRepository, IProductService productService)
         {
             _orderRepository = orderRepository;
             _productRepository = productRepository;
             _addressRepository = addressRepository;
+            _productService = productService;
         }
 
         public async Task<OrderDto> CreateCODOrderAsync(int userId, CreateOrderDto createDto)
@@ -94,8 +96,7 @@ namespace ShopperBackend.Services
                     Price = product.Price,
                     Discount = 0,
                     Tax = 0,
-                    Total = itemTotal,
-                    Status = "Pending"
+                    Total = itemTotal
                 });
 
                 await _productRepository.UpdateQuantityAsync(product.Id, product.Quantity - cartItem.Quantity);
@@ -117,7 +118,7 @@ namespace ShopperBackend.Services
             order.ShippingAddress = shippingAddress;
             order.BillingAddress = billingAddress;
 
-            return MapToDto(order);
+            return await MapToDtoAsync(order);
         }
 
         public async Task<OrderDto> GetOrderByIdAsync(int orderId)
@@ -129,7 +130,7 @@ namespace ShopperBackend.Services
             }
 
             order.OrderItems = (await _orderRepository.GetOrderItemsAsync(orderId)).ToList();
-            return MapToDto(order);
+            return await MapToDtoAsync(order);
         }
 
         public async Task<OrderDto> GetOrderByNumberAsync(string orderNumber)
@@ -141,22 +142,31 @@ namespace ShopperBackend.Services
             }
 
             order.OrderItems = (await _orderRepository.GetOrderItemsAsync(order.Id)).ToList();
-            return MapToDto(order);
+            return await MapToDtoAsync(order);
         }
 
-        public async Task<IEnumerable<OrderListDto>> GetUserOrdersAsync(int userId)
+        public async Task<IEnumerable<OrderDto>> GetUserOrdersAsync(int userId)
         {
             var orders = await _orderRepository.GetUserOrdersAsync(userId);
-            return orders.Select(o => new OrderListDto
+            var orderDtos = new List<OrderDto>();
+
+            foreach (var order in orders)
             {
-                Id = o.Id,
-                OrderNumber = o.OrderNumber,
-                Status = o.Status,
-                TotalAmount = o.TotalAmount,
-                PaymentStatus = o.PaymentStatus,
-                CreatedAt = o.CreatedAt,
-                ItemCount = 0
-            });
+                order.OrderItems = (await _orderRepository.GetOrderItemsAsync(order.Id)).ToList();
+
+                if (order.ShippingAddressId.HasValue)
+                {
+                    order.ShippingAddress = await _addressRepository.GetByIdAsync(order.ShippingAddressId.Value);
+                }
+                if (order.BillingAddressId.HasValue)
+                {
+                    order.BillingAddress = await _addressRepository.GetByIdAsync(order.BillingAddressId.Value);
+                }
+
+                orderDtos.Add(await MapToDtoAsync(order));
+            }
+
+            return orderDtos;
         }
 
         public async Task<bool> UpdateOrderStatusAsync(int orderId, UpdateOrderStatusDto statusDto)
@@ -205,12 +215,16 @@ namespace ShopperBackend.Services
             return $"ORD{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
         }
 
-        private OrderDto MapToDto(Order order)
+        private async Task<OrderDto> MapToDtoAsync(Order order)
         {
+            var itemTasks = order.OrderItems?.Select(MapOrderItemToDtoAsync) ?? new List<Task<OrderItemDto>>();
+            var items = await Task.WhenAll(itemTasks);
+
             return new OrderDto
             {
                 Id = order.Id,
                 OrderNumber = order.OrderNumber,
+                UserId = order.UserId,  // Added missing UserId
                 Status = order.Status,
                 SubTotal = order.SubTotal,
                 TaxAmount = order.TaxAmount,
@@ -221,7 +235,9 @@ namespace ShopperBackend.Services
                 PaymentStatus = order.PaymentStatus,
                 TrackingNumber = order.TrackingNumber,
                 EstimatedDelivery = order.EstimatedDelivery,
+                Notes = order.Notes,  // Added missing Notes
                 CreatedAt = order.CreatedAt,
+                UpdatedAt = order.UpdatedAt,  // Added missing UpdatedAt
                 User = order.User != null ? new UserDto
                 {
                     Id = order.User.Id,
@@ -236,7 +252,7 @@ namespace ShopperBackend.Services
                 } : null,
                 ShippingAddress = order.ShippingAddress != null ? MapAddressToDto(order.ShippingAddress) : null,
                 BillingAddress = order.BillingAddress != null ? MapAddressToDto(order.BillingAddress) : null,
-                Items = order.OrderItems?.Select(MapOrderItemToDto).ToList()
+                Items = items.ToList()
             };
         }
 
@@ -256,8 +272,31 @@ namespace ShopperBackend.Services
             };
         }
 
-        private OrderItemDto MapOrderItemToDto(OrderItem item)
+        private async Task<OrderItemDto> MapOrderItemToDtoAsync(OrderItem item)
         {
+            var product = await _productRepository.GetByIdAsync(item.ProductId);
+            ProductListDto productDto = null;
+
+            if (product != null)
+            {
+                string primaryImage = null;
+                if (product.ImageData != null && product.ImageMimeType != null)
+                {
+                    primaryImage = $"data:{product.ImageMimeType};base64,{Convert.ToBase64String(product.ImageData)}";
+                }
+                else if (!string.IsNullOrEmpty(product.ImageUrl))
+                {
+                    primaryImage = product.ImageUrl;
+                }
+
+                productDto = new ProductListDto
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    PrimaryImage = primaryImage
+                };
+            }
+
             return new OrderItemDto
             {
                 Id = item.Id,
@@ -269,7 +308,8 @@ namespace ShopperBackend.Services
                 Discount = item.Discount,
                 Tax = item.Tax,
                 Total = item.Total,
-                Status = item.Status
+                Status = "Pending",
+                Product = productDto
             };
         }
     }

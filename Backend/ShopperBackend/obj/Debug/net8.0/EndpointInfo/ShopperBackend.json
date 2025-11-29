@@ -1095,6 +1095,65 @@
         }
       }
     },
+    "/api/Vendor/orders/{orderId}/decline": {
+      "put": {
+        "tags": [
+          "Vendor"
+        ],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { }
+            },
+            "text/json": {
+              "schema": { }
+            },
+            "application/*+json": {
+              "schema": { }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Vendor/orders/{orderId}/deliver": {
+      "put": {
+        "tags": [
+          "Vendor"
+        ],
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Vendor/analytics": {
       "get": {
         "tags": [
@@ -1291,43 +1350,6 @@
         },
         "additionalProperties": false
       },
-      "CartItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "productId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "variationId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "quantity": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "price": {
-            "type": "number",
-            "format": "double"
-          },
-          "total": {
-            "type": "number",
-            "format": "double"
-          },
-          "product": {
-            "$ref": "#/components/schemas/ProductListDto"
-          },
-          "variation": {
-            "$ref": "#/components/schemas/ProductVariationDto"
-          }
-        },
-        "additionalProperties": false
-      },
       "CategoryDto": {
         "type": "object",
         "properties": {
@@ -1467,7 +1489,7 @@
           "cartItems": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CartItemDto"
+              "$ref": "#/components/schemas/OrderCartItemDto"
             }
           }
         },
@@ -1700,6 +1722,26 @@
         },
         "additionalProperties": false
       },
+      "OrderCartItemDto": {
+        "required": [
+          "productId",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quantity": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "OrderDto": {
         "type": "object",
         "properties": {
@@ -1773,6 +1815,11 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           },
           "user": {
             "$ref": "#/components/schemas/UserDto"
@@ -2422,6 +2469,14 @@
             "format": "int32"
           },
           "totalProducts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeProducts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pendingOrders": {
             "type": "integer",
             "format": "int32"
           }
