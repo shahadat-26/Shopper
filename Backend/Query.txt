@@ -1,0 +1,480 @@
+-- PostgreSQL Database Schema for E-commerce Application
+-- Run these queries in order in pgAdmin
+
+-- Create database (run this separately first)
+CREATE DATABASE ShopperDB;
+
+-- Connect to ShopperDB before running the rest
+
+-- Create ENUM types
+CREATE TYPE user_role AS ENUM ('Customer', 'Vendor', 'Admin');
+CREATE TYPE order_status AS ENUM ('Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Refunded');
+CREATE TYPE payment_status AS ENUM ('Pending', 'Completed', 'Failed', 'Refunded');
+CREATE TYPE payment_method AS ENUM ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer');
+
+-- Users table
+CREATE TABLE Users (
+    Id SERIAL PRIMARY KEY,
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    PasswordHash VARCHAR(255) NOT NULL,
+    FirstName VARCHAR(100) NOT NULL,
+    LastName VARCHAR(100) NOT NULL,
+    PhoneNumber VARCHAR(20),
+    Role user_role NOT NULL DEFAULT 'Customer',
+    IsEmailVerified BOOLEAN DEFAULT FALSE,
+    EmailVerificationToken VARCHAR(255),
+    PasswordResetToken VARCHAR(255),
+    PasswordResetTokenExpiry TIMESTAMP,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    IsActive BOOLEAN DEFAULT TRUE,
+    RefreshToken VARCHAR(500),
+    RefreshTokenExpiry TIMESTAMP
+);
+
+-- Vendors table
+CREATE TABLE Vendors (
+    Id SERIAL PRIMARY KEY,
+    UserId INT UNIQUE NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    StoreName VARCHAR(255) NOT NULL,
+    StoreDescription TEXT,
+    LogoUrl VARCHAR(500),
+    BannerUrl VARCHAR(500),
+    BusinessEmail VARCHAR(255),
+    BusinessPhone VARCHAR(20),
+    TaxNumber VARCHAR(100),
+    CommissionRate DECIMAL(5,2) DEFAULT 10.00,
+    IsApproved BOOLEAN DEFAULT FALSE,
+    ApprovedAt TIMESTAMP,
+    Rating DECIMAL(3,2) DEFAULT 0,
+    TotalSales INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Categories table
+CREATE TABLE Categories (
+    Id SERIAL PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Slug VARCHAR(100) UNIQUE NOT NULL,
+    Description TEXT,
+    ImageUrl VARCHAR(500),
+    ParentCategoryId INT REFERENCES Categories(Id) ON DELETE SET NULL,
+    DisplayOrder INT DEFAULT 0,
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Products table
+CREATE TABLE Products (
+    Id SERIAL PRIMARY KEY,
+    VendorId INT NOT NULL REFERENCES Vendors(Id) ON DELETE CASCADE,
+    CategoryId INT NOT NULL REFERENCES Categories(Id),
+    Name VARCHAR(255) NOT NULL,
+    Slug VARCHAR(255) UNIQUE NOT NULL,
+    Description TEXT,
+    ShortDescription VARCHAR(500),
+    SKU VARCHAR(100) UNIQUE NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    CompareAtPrice DECIMAL(10,2),
+    Cost DECIMAL(10,2),
+    Quantity INT NOT NULL DEFAULT 0,
+    LowStockThreshold INT DEFAULT 5,
+    Weight DECIMAL(10,2),
+    Length DECIMAL(10,2),
+    Width DECIMAL(10,2),
+    Height DECIMAL(10,2),
+    IsFeatured BOOLEAN DEFAULT FALSE,
+    IsDigital BOOLEAN DEFAULT FALSE,
+    IsActive BOOLEAN DEFAULT TRUE,
+    ViewCount INT DEFAULT 0,
+    SalesCount INT DEFAULT 0,
+    Rating DECIMAL(3,2) DEFAULT 0,
+    ReviewCount INT DEFAULT 0,
+    MetaTitle VARCHAR(255),
+    MetaDescription TEXT,
+    MetaKeywords VARCHAR(500),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Images table
+CREATE TABLE ProductImages (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    ImageUrl VARCHAR(500) NOT NULL,
+    AltText VARCHAR(255),
+    DisplayOrder INT DEFAULT 0,
+    IsPrimary BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Attributes table
+CREATE TABLE ProductAttributes (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    AttributeName VARCHAR(100) NOT NULL,
+    AttributeValue VARCHAR(255) NOT NULL,
+    DisplayOrder INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Variations table
+CREATE TABLE ProductVariations (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    VariationName VARCHAR(100) NOT NULL,
+    SKU VARCHAR(100) UNIQUE NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    Quantity INT NOT NULL DEFAULT 0,
+    Attributes JSONB,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Addresses table
+CREATE TABLE Addresses (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    AddressLine1 VARCHAR(255) NOT NULL,
+    AddressLine2 VARCHAR(255),
+    City VARCHAR(100) NOT NULL,
+    State VARCHAR(100) NOT NULL,
+    Country VARCHAR(100) NOT NULL,
+    PostalCode VARCHAR(20) NOT NULL,
+    IsDefault BOOLEAN DEFAULT FALSE,
+    AddressType VARCHAR(50),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Shopping Cart table
+CREATE TABLE ShoppingCarts (
+    Id SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(Id) ON DELETE CASCADE,
+    SessionId VARCHAR(255),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(UserId)
+);
+
+-- Cart Items table
+CREATE TABLE CartItems (
+    Id SERIAL PRIMARY KEY,
+    CartId INT NOT NULL REFERENCES ShoppingCarts(Id) ON DELETE CASCADE,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    VariationId INT REFERENCES ProductVariations(Id) ON DELETE CASCADE,
+    Quantity INT NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(CartId, ProductId, VariationId)
+);
+
+-- Wishlists table
+CREATE TABLE Wishlists (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(UserId, ProductId)
+);
+
+-- Coupons table
+CREATE TABLE Coupons (
+    Id SERIAL PRIMARY KEY,
+    Code VARCHAR(50) UNIQUE NOT NULL,
+    Description TEXT,
+    DiscountType VARCHAR(20) NOT NULL,
+    DiscountValue DECIMAL(10,2) NOT NULL,
+    MinimumAmount DECIMAL(10,2),
+    MaximumDiscount DECIMAL(10,2),
+    UsageLimit INT,
+    UsageCount INT DEFAULT 0,
+    UserLimit INT DEFAULT 1,
+    VendorId INT REFERENCES Vendors(Id) ON DELETE CASCADE,
+    ValidFrom TIMESTAMP NOT NULL,
+    ValidTo TIMESTAMP NOT NULL,
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Orders table
+CREATE TABLE Orders (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id),
+    OrderNumber VARCHAR(50) UNIQUE NOT NULL,
+    Status order_status NOT NULL DEFAULT 'Pending',
+    SubTotal DECIMAL(10,2) NOT NULL,
+    TaxAmount DECIMAL(10,2) DEFAULT 0,
+    ShippingAmount DECIMAL(10,2) DEFAULT 0,
+    DiscountAmount DECIMAL(10,2) DEFAULT 0,
+    TotalAmount DECIMAL(10,2) NOT NULL,
+    CouponId INT REFERENCES Coupons(Id),
+    PaymentMethod payment_method,
+    PaymentStatus payment_status DEFAULT 'Pending',
+    Notes TEXT,
+    ShippingAddressId INT REFERENCES Addresses(Id),
+    BillingAddressId INT REFERENCES Addresses(Id),
+    TrackingNumber VARCHAR(255),
+    EstimatedDelivery DATE,
+    DeliveredAt TIMESTAMP,
+    CancelledAt TIMESTAMP,
+    CancellationReason TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order Items table
+CREATE TABLE OrderItems (
+    Id SERIAL PRIMARY KEY,
+    OrderId INT NOT NULL REFERENCES Orders(Id) ON DELETE CASCADE,
+    ProductId INT NOT NULL REFERENCES Products(Id),
+    VariationId INT REFERENCES ProductVariations(Id),
+    VendorId INT NOT NULL REFERENCES Vendors(Id),
+    ProductName VARCHAR(255) NOT NULL,
+    ProductSKU VARCHAR(100) NOT NULL,
+    Quantity INT NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    Discount DECIMAL(10,2) DEFAULT 0,
+    Tax DECIMAL(10,2) DEFAULT 0,
+    Total DECIMAL(10,2) NOT NULL,
+    Status order_status NOT NULL DEFAULT 'Pending',
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Payments table
+CREATE TABLE Payments (
+    Id SERIAL PRIMARY KEY,
+    OrderId INT NOT NULL REFERENCES Orders(Id) ON DELETE CASCADE,
+    TransactionId VARCHAR(255) UNIQUE,
+    PaymentMethod payment_method NOT NULL,
+    Amount DECIMAL(10,2) NOT NULL,
+    Currency VARCHAR(3) DEFAULT 'USD',
+    Status payment_status NOT NULL DEFAULT 'Pending',
+    GatewayResponse JSONB,
+    PaidAt TIMESTAMP,
+    FailureReason TEXT,
+    RefundAmount DECIMAL(10,2),
+    RefundedAt TIMESTAMP,
+    RefundReason TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Reviews table
+CREATE TABLE Reviews (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    UserId INT NOT NULL REFERENCES Users(Id),
+    OrderItemId INT REFERENCES OrderItems(Id),
+    Rating INT NOT NULL CHECK (Rating >= 1 AND Rating <= 5),
+    Title VARCHAR(255),
+    Comment TEXT,
+    IsVerifiedPurchase BOOLEAN DEFAULT FALSE,
+    HelpfulCount INT DEFAULT 0,
+    IsApproved BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ProductId, UserId, OrderItemId)
+);
+
+-- Review Images table
+CREATE TABLE ReviewImages (
+    Id SERIAL PRIMARY KEY,
+    ReviewId INT NOT NULL REFERENCES Reviews(Id) ON DELETE CASCADE,
+    ImageUrl VARCHAR(500) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notifications table
+CREATE TABLE Notifications (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    Title VARCHAR(255) NOT NULL,
+    Message TEXT NOT NULL,
+    Type VARCHAR(50),
+    IsRead BOOLEAN DEFAULT FALSE,
+    ReadAt TIMESTAMP,
+    Data JSONB,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Newsletter Subscribers table
+CREATE TABLE NewsletterSubscribers (
+    Id SERIAL PRIMARY KEY,
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    IsActive BOOLEAN DEFAULT TRUE,
+    SubscribedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UnsubscribedAt TIMESTAMP
+);
+
+-- Banners table
+CREATE TABLE Banners (
+    Id SERIAL PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    ImageUrl VARCHAR(500) NOT NULL,
+    LinkUrl VARCHAR(500),
+    DisplayOrder INT DEFAULT 0,
+    IsActive BOOLEAN DEFAULT TRUE,
+    StartDate TIMESTAMP,
+    EndDate TIMESTAMP,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Activity Logs table
+CREATE TABLE ActivityLogs (
+    Id SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(Id) ON DELETE SET NULL,
+    Action VARCHAR(255) NOT NULL,
+    EntityType VARCHAR(100),
+    EntityId INT,
+    OldValues JSONB,
+    NewValues JSONB,
+    IpAddress VARCHAR(45),
+    UserAgent TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_users_email ON Users(Email);
+CREATE INDEX idx_users_role ON Users(Role);
+CREATE INDEX idx_products_vendor ON Products(VendorId);
+CREATE INDEX idx_products_category ON Products(CategoryId);
+CREATE INDEX idx_products_slug ON Products(Slug);
+CREATE INDEX idx_products_sku ON Products(SKU);
+CREATE INDEX idx_products_active ON Products(IsActive);
+CREATE INDEX idx_orders_user ON Orders(UserId);
+CREATE INDEX idx_orders_status ON Orders(Status);
+CREATE INDEX idx_orders_number ON Orders(OrderNumber);
+CREATE INDEX idx_orderitems_order ON OrderItems(OrderId);
+CREATE INDEX idx_orderitems_vendor ON OrderItems(VendorId);
+CREATE INDEX idx_cartitems_cart ON CartItems(CartId);
+CREATE INDEX idx_reviews_product ON Reviews(ProductId);
+CREATE INDEX idx_reviews_user ON Reviews(UserId);
+CREATE INDEX idx_wishlist_user ON Wishlists(UserId);
+CREATE INDEX idx_notifications_user ON Notifications(UserId);
+CREATE INDEX idx_addresses_user ON Addresses(UserId);
+
+-- Create update trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.UpdatedAt = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for UpdatedAt columns
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON Users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_vendors_updated_at BEFORE UPDATE ON Vendors FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON Categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON Products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_productvariations_updated_at BEFORE UPDATE ON ProductVariations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_addresses_updated_at BEFORE UPDATE ON Addresses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_shoppingcarts_updated_at BEFORE UPDATE ON ShoppingCarts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_cartitems_updated_at BEFORE UPDATE ON CartItems FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON Coupons FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON Orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_orderitems_updated_at BEFORE UPDATE ON OrderItems FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON Payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON Reviews FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_banners_updated_at BEFORE UPDATE ON Banners FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert sample data
+INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, Role, IsEmailVerified, IsActive) VALUES
+('admin@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Admin', 'User', '1234567890', 'Admin', true, true),
+('vendor1@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'John', 'Vendor', '1234567891', 'Vendor', true, true),
+('vendor2@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Jane', 'Seller', '1234567892', 'Vendor', true, true),
+('customer1@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Mike', 'Customer', '1234567893', 'Customer', true, true),
+('customer2@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Sarah', 'Buyer', '1234567894', 'Customer', true, true);
+
+-- Password for all users is: Password123!
+
+INSERT INTO Vendors (UserId, StoreName, StoreDescription, BusinessEmail, BusinessPhone, IsApproved, Rating, TotalSales) VALUES
+(2, 'Tech Store', 'Your one-stop shop for all electronics', 'techstore@business.com', '1234567891', true, 4.5, 150),
+(3, 'Fashion Hub', 'Trendy clothes and accessories', 'fashionhub@business.com', '1234567892', true, 4.2, 200);
+
+INSERT INTO Categories (Name, Slug, Description, DisplayOrder, IsActive) VALUES
+('Electronics', 'electronics', 'Electronic devices and gadgets', 1, true),
+('Fashion', 'fashion', 'Clothing and accessories', 2, true),
+('Home & Garden', 'home-garden', 'Home decoration and garden supplies', 3, true),
+('Books', 'books', 'Books and educational materials', 4, true),
+('Sports', 'sports', 'Sports equipment and accessories', 5, true),
+('Smartphones', 'smartphones', 'Latest smartphones', 1, true),
+('Laptops', 'laptops', 'Laptop computers', 2, true),
+('Men Fashion', 'men-fashion', 'Fashion for men', 1, true),
+('Women Fashion', 'women-fashion', 'Fashion for women', 2, true);
+
+UPDATE Categories SET ParentCategoryId = 1 WHERE Slug IN ('smartphones', 'laptops');
+UPDATE Categories SET ParentCategoryId = 2 WHERE Slug IN ('men-fashion', 'women-fashion');
+
+-- Add sample products with images and details
+INSERT INTO Products (VendorId, CategoryId, Name, Slug, Description, ShortDescription, SKU, Price, CompareAtPrice, Cost, Quantity, LowStockThreshold, IsFeatured, IsDigital, IsActive, Rating, ReviewCount, CreatedAt, UpdatedAt) VALUES
+(1, 6, 'iPhone 15 Pro Max', 'iphone-15-pro-max', 'The iPhone 15 Pro Max features a titanium design, A17 Pro chip, and advanced camera system with 5x optical zoom. Experience the most powerful iPhone ever created.', 'Latest iPhone with titanium design and A17 Pro chip', 'IPH15PM256', 1299.99, 1399.99, 900, 50, 5, true, false, true, 4.8, 245, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 6, 'Samsung Galaxy S24 Ultra', 'samsung-galaxy-s24-ultra', 'Samsung Galaxy S24 Ultra with AI features, S Pen, and 200MP camera. The ultimate Android flagship with cutting-edge technology.', 'Premium Android flagship with S Pen', 'SGS24U512', 1199.99, 1299.99, 850, 30, 5, true, false, true, 4.7, 189, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 7, 'MacBook Pro 16" M3 Max', 'macbook-pro-16-m3-max', 'MacBook Pro 16-inch with M3 Max chip, up to 128GB unified memory, and stunning Liquid Retina XDR display. Built for professionals who need maximum performance.', 'Powerful laptop with M3 Max chip', 'MBP16M3MAX', 3999.99, 4299.99, 3200, 15, 3, true, false, true, 4.9, 98, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 7, 'Dell XPS 15', 'dell-xps-15', 'Dell XPS 15 with Intel Core i9, NVIDIA RTX 4070, and stunning OLED display. Premium Windows laptop for creators and professionals.', 'Premium Windows laptop for creators', 'DXPS15I9', 2499.99, 2799.99, 1800, 20, 5, true, false, true, 4.6, 156, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'Sony WH-1000XM5', 'sony-wh-1000xm5', 'Industry-leading noise cancellation with Auto NC Optimizer, exceptional sound quality, and up to 30-hour battery life. The best wireless headphones for audiophiles.', 'Premium noise-cancelling headphones', 'SONYWH1000', 399.99, 449.99, 250, 100, 10, true, false, true, 4.8, 567, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'Apple AirPods Pro 2', 'apple-airpods-pro-2', 'Active Noise Cancellation, Adaptive Transparency, and Personalized Spatial Audio. The most advanced AirPods ever.', 'Premium wireless earbuds with ANC', 'APDPRO2', 249.99, 279.99, 150, 200, 15, true, false, true, 4.7, 892, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 8, 'Nike Air Max 270', 'nike-air-max-270', 'Experience all-day comfort with Nike Air Max 270. Features the tallest Air unit yet for a super-soft ride that feels as good as it looks.', 'Comfortable lifestyle sneakers', 'NIKAM270BK', 150.00, 170.00, 80, 75, 10, true, false, true, 4.5, 234, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 8, 'Adidas Ultraboost 22', 'adidas-ultraboost-22', 'Ultraboost 22 running shoes with incredible energy return. Features BOOST midsole and Primeknit upper for ultimate comfort.', 'Premium running shoes', 'ADIUB22WH', 180.00, 200.00, 100, 60, 8, true, false, true, 4.6, 178, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 9, 'Levi''s 511 Slim Jeans', 'levis-511-slim-jeans', 'Classic slim fit jeans with just the right amount of stretch. Made from sustainable cotton for comfort and durability.', 'Slim fit denim jeans', 'LEV511BLU', 69.99, 89.99, 35, 120, 15, true, false, true, 4.4, 456, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 9, 'Ralph Lauren Polo Shirt', 'ralph-lauren-polo-shirt', 'Iconic polo shirt in classic fit. Made from 100% cotton mesh for breathability and comfort. A timeless wardrobe essential.', 'Classic cotton polo shirt', 'RLPOLONVY', 89.99, 98.00, 45, 80, 10, true, false, true, 4.5, 234, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'iPad Pro 12.9" M2', 'ipad-pro-12-9-m2', 'iPad Pro with M2 chip, 12.9-inch Liquid Retina XDR display, and all-day battery life. The ultimate iPad experience for professionals.', 'Professional tablet with M2 chip', 'IPADPRO129', 1099.99, 1199.99, 750, 40, 5, true, false, true, 4.8, 345, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'Samsung 65" OLED 4K TV', 'samsung-65-oled-4k', 'Experience perfect blacks and infinite contrast with Samsung OLED technology. 120Hz refresh rate for smooth gaming and sports.', 'Premium 65-inch OLED smart TV', 'SAMS65OLED', 1799.99, 2199.99, 1200, 10, 2, true, false, true, 4.7, 123, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 3, 'Instant Pot Duo 7-in-1', 'instant-pot-duo-7in1', 'Pressure cooker, slow cooker, rice cooker, steamer, sauté, yogurt maker, and warmer all in one. Makes cooking fast and easy.', 'Multi-functional pressure cooker', 'INSTPOT7IN1', 89.99, 129.99, 45, 150, 20, true, false, true, 4.6, 2341, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 3, 'Dyson V15 Detect', 'dyson-v15-detect', 'Most powerful Dyson cordless vacuum with laser dust detection. Up to 60 minutes runtime and advanced filtration system.', 'Advanced cordless vacuum cleaner', 'DYSV15DET', 749.99, 799.99, 500, 25, 5, true, false, true, 4.8, 678, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'PlayStation 5 Console', 'playstation-5-console', 'Experience lightning-fast loading with ultra-high speed SSD, deeper immersion with haptic feedback, and stunning games.', 'Next-gen gaming console', 'PS5CONSOLE', 499.99, 549.99, 350, 20, 5, true, false, true, 4.9, 1234, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- Insert product images
+INSERT INTO ProductImages (ProductId, ImageUrl, AltText, DisplayOrder, IsPrimary) VALUES
+(1, 'https://images.unsplash.com/photo-1696446701796-da61225697cc', 'iPhone 15 Pro Max Front', 1, true),
+(1, 'https://images.unsplash.com/photo-1696446702183-cbd13d78e1e7', 'iPhone 15 Pro Max Back', 2, false),
+(2, 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c', 'Samsung Galaxy S24 Ultra', 1, true),
+(3, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8', 'MacBook Pro 16', 1, true),
+(4, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45', 'Dell XPS 15', 1, true),
+(5, 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb', 'Sony WH-1000XM5', 1, true),
+(6, 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434', 'Apple AirPods Pro', 1, true),
+(7, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff', 'Nike Air Max 270', 1, true),
+(8, 'https://images.unsplash.com/photo-1556906781-9a412961c28c', 'Adidas Ultraboost', 1, true),
+(9, 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246', 'Levi''s Jeans', 1, true),
+(10, 'https://images.unsplash.com/photo-1581655353564-df123a1eb820', 'Ralph Lauren Polo', 1, true),
+(11, 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0', 'iPad Pro', 1, true),
+(12, 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1', 'Samsung OLED TV', 1, true),
+(13, 'https://images.unsplash.com/photo-1585515320310-259814833e62', 'Instant Pot', 1, true),
+(14, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64', 'Dyson V15', 1, true),
+(15, 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db', 'PlayStation 5', 1, true);
+
+-- Insert sample product attributes
+INSERT INTO ProductAttributes (ProductId, AttributeName, AttributeValue, DisplayOrder) VALUES
+(1, 'Storage', '256GB', 1),
+(1, 'Color', 'Natural Titanium', 2),
+(1, 'Display', '6.7-inch Super Retina XDR', 3),
+(2, 'Storage', '512GB', 1),
+(2, 'RAM', '12GB', 2),
+(3, 'Memory', '64GB', 1),
+(3, 'Storage', '2TB SSD', 2),
+(5, 'Battery Life', '30 Hours', 1),
+(5, 'Color', 'Black', 2);
+
+-- Insert sample reviews
+INSERT INTO Reviews (ProductId, UserId, Rating, Title, Comment, IsVerifiedPurchase, HelpfulCount, IsApproved) VALUES
+(1, 4, 5, 'Amazing Phone!', 'The iPhone 15 Pro Max is absolutely incredible. The camera quality is outstanding and the titanium build feels premium.', true, 45, true),
+(1, 5, 4, 'Great but expensive', 'Excellent phone with amazing features, but the price is quite high. Still worth it for the quality.', true, 23, true),
+(2, 4, 5, 'Best Android Phone', 'Samsung has outdone themselves with the S24 Ultra. The S Pen functionality is fantastic.', true, 34, true),
+(3, 5, 5, 'Productivity Beast', 'The M3 Max chip is insanely fast. Perfect for video editing and development work.', true, 67, true),
+(5, 4, 5, 'Best Noise Cancellation', 'These headphones are amazing! The noise cancellation is the best I''ve ever experienced.', true, 89, true);
+
+-- Insert sample banners
+INSERT INTO Banners (Title, ImageUrl, LinkUrl, DisplayOrder, IsActive, StartDate, EndDate) VALUES
+('Holiday Sale - Up to 50% Off', 'https://images.unsplash.com/photo-1607082348824-0a96c4a4b9b3', '/products?sale=holiday', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '30 days'),
+('New iPhone 15 Series', 'https://images.unsplash.com/photo-1510557880182-3d4d3cba2a13', '/products/iphone-15-pro-max', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '15 days'),
+('Free Shipping on Orders Over $50', 'https://images.unsplash.com/photo-1578575437130-527eed3abbec', '/products', 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '60 days');
+
+-- Connection string for appsettings.json:
+-- "DefaultConnection": "Host=localhost;Database=ShopperDB;Username=your_username;Password=your_password"
