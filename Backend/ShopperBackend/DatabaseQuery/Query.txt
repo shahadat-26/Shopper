@@ -1,0 +1,1155 @@
+﻿
+
+-- Connect to ShopperDB before running the rest
+
+-- Create ENUM types
+CREATE TYPE user_role AS ENUM ('Customer', 'Vendor', 'Admin');
+CREATE TYPE order_status AS ENUM ('Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Refunded');
+CREATE TYPE payment_status AS ENUM ('Pending', 'Completed', 'Failed', 'Refunded');
+CREATE TYPE payment_method AS ENUM ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer');
+
+-- Users table
+CREATE TABLE Users (
+    Id SERIAL PRIMARY KEY,
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    PasswordHash VARCHAR(255) NOT NULL,
+    FirstName VARCHAR(100) NOT NULL,
+    LastName VARCHAR(100) NOT NULL,
+    PhoneNumber VARCHAR(20),
+    Role user_role NOT NULL DEFAULT 'Customer',
+    IsEmailVerified BOOLEAN DEFAULT FALSE,
+    EmailVerificationToken VARCHAR(255),
+    PasswordResetToken VARCHAR(255),
+    PasswordResetTokenExpiry TIMESTAMP,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    IsActive BOOLEAN DEFAULT TRUE,
+    RefreshToken VARCHAR(500),
+    RefreshTokenExpiry TIMESTAMP
+);
+
+-- Vendors table
+CREATE TABLE Vendors (
+    Id SERIAL PRIMARY KEY,
+    UserId INT UNIQUE NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    StoreName VARCHAR(255) NOT NULL,
+    StoreDescription TEXT,
+    LogoUrl VARCHAR(500),
+    BannerUrl VARCHAR(500),
+    BusinessEmail VARCHAR(255),
+    BusinessPhone VARCHAR(20),
+    TaxNumber VARCHAR(100),
+    CommissionRate DECIMAL(5,2) DEFAULT 10.00,
+    IsApproved BOOLEAN DEFAULT FALSE,
+    ApprovedAt TIMESTAMP,
+    Rating DECIMAL(3,2) DEFAULT 0,
+    TotalSales INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Categories table
+CREATE TABLE Categories (
+    Id SERIAL PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Slug VARCHAR(100) UNIQUE NOT NULL,
+    Description TEXT,
+    ImageUrl VARCHAR(500),
+    ParentCategoryId INT REFERENCES Categories(Id) ON DELETE SET NULL,
+    DisplayOrder INT DEFAULT 0,
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Products table
+CREATE TABLE Products (
+    Id SERIAL PRIMARY KEY,
+    VendorId INT NOT NULL REFERENCES Vendors(Id) ON DELETE CASCADE,
+    CategoryId INT NOT NULL REFERENCES Categories(Id),
+    Name VARCHAR(255) NOT NULL,
+    Slug VARCHAR(255) UNIQUE NOT NULL,
+    Description TEXT,
+    ShortDescription VARCHAR(500),
+    SKU VARCHAR(100) UNIQUE NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    CompareAtPrice DECIMAL(10,2),
+    Cost DECIMAL(10,2),
+    Quantity INT NOT NULL DEFAULT 0,
+    LowStockThreshold INT DEFAULT 5,
+    Weight DECIMAL(10,2),
+    Length DECIMAL(10,2),
+    Width DECIMAL(10,2),
+    Height DECIMAL(10,2),
+    IsFeatured BOOLEAN DEFAULT FALSE,
+    IsDigital BOOLEAN DEFAULT FALSE,
+    IsActive BOOLEAN DEFAULT TRUE,
+    ViewCount INT DEFAULT 0,
+    SalesCount INT DEFAULT 0,
+    Rating DECIMAL(3,2) DEFAULT 0,
+    ReviewCount INT DEFAULT 0,
+    MetaTitle VARCHAR(255),
+    MetaDescription TEXT,
+    MetaKeywords VARCHAR(500),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Images table
+CREATE TABLE ProductImages (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    ImageUrl VARCHAR(500) NOT NULL,
+    AltText VARCHAR(255),
+    DisplayOrder INT DEFAULT 0,
+    IsPrimary BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Attributes table
+CREATE TABLE ProductAttributes (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    AttributeName VARCHAR(100) NOT NULL,
+    AttributeValue VARCHAR(255) NOT NULL,
+    DisplayOrder INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Product Variations table
+CREATE TABLE ProductVariations (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    VariationName VARCHAR(100) NOT NULL,
+    SKU VARCHAR(100) UNIQUE NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    Quantity INT NOT NULL DEFAULT 0,
+    Attributes JSONB,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Addresses table
+CREATE TABLE Addresses (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    AddressLine1 VARCHAR(255) NOT NULL,
+    AddressLine2 VARCHAR(255),
+    City VARCHAR(100) NOT NULL,
+    State VARCHAR(100) NOT NULL,
+    Country VARCHAR(100) NOT NULL,
+    PostalCode VARCHAR(20) NOT NULL,
+    IsDefault BOOLEAN DEFAULT FALSE,
+    AddressType VARCHAR(50),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Shopping Cart table
+CREATE TABLE ShoppingCarts (
+    Id SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(Id) ON DELETE CASCADE,
+    SessionId VARCHAR(255),
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(UserId)
+);
+
+-- Cart Items table
+CREATE TABLE CartItems (
+    Id SERIAL PRIMARY KEY,
+    CartId INT NOT NULL REFERENCES ShoppingCarts(Id) ON DELETE CASCADE,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    VariationId INT REFERENCES ProductVariations(Id) ON DELETE CASCADE,
+    Quantity INT NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(CartId, ProductId, VariationId)
+);
+
+-- Wishlists table
+CREATE TABLE Wishlists (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(UserId, ProductId)
+);
+
+-- Coupons table
+CREATE TABLE Coupons (
+    Id SERIAL PRIMARY KEY,
+    Code VARCHAR(50) UNIQUE NOT NULL,
+    Description TEXT,
+    DiscountType VARCHAR(20) NOT NULL,
+    DiscountValue DECIMAL(10,2) NOT NULL,
+    MinimumAmount DECIMAL(10,2),
+    MaximumDiscount DECIMAL(10,2),
+    UsageLimit INT,
+    UsageCount INT DEFAULT 0,
+    UserLimit INT DEFAULT 1,
+    VendorId INT REFERENCES Vendors(Id) ON DELETE CASCADE,
+    ValidFrom TIMESTAMP NOT NULL,
+    ValidTo TIMESTAMP NOT NULL,
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Orders table
+CREATE TABLE Orders (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id),
+    OrderNumber VARCHAR(50) UNIQUE NOT NULL,
+    Status order_status NOT NULL DEFAULT 'Pending',
+    SubTotal DECIMAL(10,2) NOT NULL,
+    TaxAmount DECIMAL(10,2) DEFAULT 0,
+    ShippingAmount DECIMAL(10,2) DEFAULT 0,
+    DiscountAmount DECIMAL(10,2) DEFAULT 0,
+    TotalAmount DECIMAL(10,2) NOT NULL,
+    CouponId INT REFERENCES Coupons(Id),
+    PaymentMethod payment_method,
+    PaymentStatus payment_status DEFAULT 'Pending',
+    Notes TEXT,
+    ShippingAddressId INT REFERENCES Addresses(Id),
+    BillingAddressId INT REFERENCES Addresses(Id),
+    TrackingNumber VARCHAR(255),
+    EstimatedDelivery DATE,
+    DeliveredAt TIMESTAMP,
+    CancelledAt TIMESTAMP,
+    CancellationReason TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order Items table
+CREATE TABLE OrderItems (
+    Id SERIAL PRIMARY KEY,
+    OrderId INT NOT NULL REFERENCES Orders(Id) ON DELETE CASCADE,
+    ProductId INT NOT NULL REFERENCES Products(Id),
+    VariationId INT REFERENCES ProductVariations(Id),
+    VendorId INT NOT NULL REFERENCES Vendors(Id),
+    ProductName VARCHAR(255) NOT NULL,
+    ProductSKU VARCHAR(100) NOT NULL,
+    Quantity INT NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    Discount DECIMAL(10,2) DEFAULT 0,
+    Tax DECIMAL(10,2) DEFAULT 0,
+    Total DECIMAL(10,2) NOT NULL,
+    Status order_status NOT NULL DEFAULT 'Pending',
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Payments table
+CREATE TABLE Payments (
+    Id SERIAL PRIMARY KEY,
+    OrderId INT NOT NULL REFERENCES Orders(Id) ON DELETE CASCADE,
+    TransactionId VARCHAR(255) UNIQUE,
+    PaymentMethod payment_method NOT NULL,
+    Amount DECIMAL(10,2) NOT NULL,
+    Currency VARCHAR(3) DEFAULT 'USD',
+    Status payment_status NOT NULL DEFAULT 'Pending',
+    GatewayResponse JSONB,
+    PaidAt TIMESTAMP,
+    FailureReason TEXT,
+    RefundAmount DECIMAL(10,2),
+    RefundedAt TIMESTAMP,
+    RefundReason TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Reviews table
+CREATE TABLE Reviews (
+    Id SERIAL PRIMARY KEY,
+    ProductId INT NOT NULL REFERENCES Products(Id) ON DELETE CASCADE,
+    UserId INT NOT NULL REFERENCES Users(Id),
+    OrderItemId INT REFERENCES OrderItems(Id),
+    Rating INT NOT NULL CHECK (Rating >= 1 AND Rating <= 5),
+    Title VARCHAR(255),
+    Comment TEXT,
+    IsVerifiedPurchase BOOLEAN DEFAULT FALSE,
+    HelpfulCount INT DEFAULT 0,
+    IsApproved BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ProductId, UserId, OrderItemId)
+);
+
+-- Review Images table
+CREATE TABLE ReviewImages (
+    Id SERIAL PRIMARY KEY,
+    ReviewId INT NOT NULL REFERENCES Reviews(Id) ON DELETE CASCADE,
+    ImageUrl VARCHAR(500) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notifications table
+CREATE TABLE Notifications (
+    Id SERIAL PRIMARY KEY,
+    UserId INT NOT NULL REFERENCES Users(Id) ON DELETE CASCADE,
+    Title VARCHAR(255) NOT NULL,
+    Message TEXT NOT NULL,
+    Type VARCHAR(50),
+    IsRead BOOLEAN DEFAULT FALSE,
+    ReadAt TIMESTAMP,
+    Data JSONB,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Newsletter Subscribers table
+CREATE TABLE NewsletterSubscribers (
+    Id SERIAL PRIMARY KEY,
+    Email VARCHAR(255) UNIQUE NOT NULL,
+    IsActive BOOLEAN DEFAULT TRUE,
+    SubscribedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UnsubscribedAt TIMESTAMP
+);
+
+-- Banners table
+CREATE TABLE Banners (
+    Id SERIAL PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    ImageUrl VARCHAR(500) NOT NULL,
+    LinkUrl VARCHAR(500),
+    DisplayOrder INT DEFAULT 0,
+    IsActive BOOLEAN DEFAULT TRUE,
+    StartDate TIMESTAMP,
+    EndDate TIMESTAMP,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Activity Logs table
+CREATE TABLE ActivityLogs (
+    Id SERIAL PRIMARY KEY,
+    UserId INT REFERENCES Users(Id) ON DELETE SET NULL,
+    Action VARCHAR(255) NOT NULL,
+    EntityType VARCHAR(100),
+    EntityId INT,
+    OldValues JSONB,
+    NewValues JSONB,
+    IpAddress VARCHAR(45),
+    UserAgent TEXT,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_users_email ON Users(Email);
+CREATE INDEX idx_users_role ON Users(Role);
+CREATE INDEX idx_products_vendor ON Products(VendorId);
+CREATE INDEX idx_products_category ON Products(CategoryId);
+CREATE INDEX idx_products_slug ON Products(Slug);
+CREATE INDEX idx_products_sku ON Products(SKU);
+CREATE INDEX idx_products_active ON Products(IsActive);
+CREATE INDEX idx_orders_user ON Orders(UserId);
+CREATE INDEX idx_orders_status ON Orders(Status);
+CREATE INDEX idx_orders_number ON Orders(OrderNumber);
+CREATE INDEX idx_orderitems_order ON OrderItems(OrderId);
+CREATE INDEX idx_orderitems_vendor ON OrderItems(VendorId);
+CREATE INDEX idx_cartitems_cart ON CartItems(CartId);
+CREATE INDEX idx_reviews_product ON Reviews(ProductId);
+CREATE INDEX idx_reviews_user ON Reviews(UserId);
+CREATE INDEX idx_wishlist_user ON Wishlists(UserId);
+CREATE INDEX idx_notifications_user ON Notifications(UserId);
+CREATE INDEX idx_addresses_user ON Addresses(UserId);
+
+-- Create update trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.UpdatedAt = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create triggers for UpdatedAt columns
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON Users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_vendors_updated_at BEFORE UPDATE ON Vendors FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON Categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON Products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_productvariations_updated_at BEFORE UPDATE ON ProductVariations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_addresses_updated_at BEFORE UPDATE ON Addresses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_shoppingcarts_updated_at BEFORE UPDATE ON ShoppingCarts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_cartitems_updated_at BEFORE UPDATE ON CartItems FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON Coupons FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON Orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_orderitems_updated_at BEFORE UPDATE ON OrderItems FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON Payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_reviews_updated_at BEFORE UPDATE ON Reviews FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_banners_updated_at BEFORE UPDATE ON Banners FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert sample data
+INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, Role, IsEmailVerified, IsActive) VALUES
+('admin@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Admin', 'User', '1234567890', 'Admin', true, true),
+('vendor1@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'John', 'Vendor', '1234567891', 'Vendor', true, true),
+('vendor2@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Jane', 'Seller', '1234567892', 'Vendor', true, true),
+('customer1@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Mike', 'Customer', '1234567893', 'Customer', true, true),
+('customer2@shopper.com', '$2a$10$rBV2JDeWW3.vKyeQcM8fFO4777l4bVeQgDL6VZkDQ/VnQ.7HQ/H5O', 'Sarah', 'Buyer', '1234567894', 'Customer', true, true);
+
+-- Password for all users is: Password123!
+
+INSERT INTO Vendors (UserId, StoreName, StoreDescription, BusinessEmail, BusinessPhone, IsApproved, Rating, TotalSales) VALUES
+(2, 'Tech Store', 'Your one-stop shop for all electronics', 'techstore@business.com', '1234567891', true, 4.5, 150),
+(3, 'Fashion Hub', 'Trendy clothes and accessories', 'fashionhub@business.com', '1234567892', true, 4.2, 200);
+
+INSERT INTO Categories (Name, Slug, Description, DisplayOrder, IsActive) VALUES
+('Electronics', 'electronics', 'Electronic devices and gadgets', 1, true),
+('Fashion', 'fashion', 'Clothing and accessories', 2, true),
+('Home & Garden', 'home-garden', 'Home decoration and garden supplies', 3, true),
+('Books', 'books', 'Books and educational materials', 4, true),
+('Sports', 'sports', 'Sports equipment and accessories', 5, true),
+('Smartphones', 'smartphones', 'Latest smartphones', 1, true),
+('Laptops', 'laptops', 'Laptop computers', 2, true),
+('Men Fashion', 'men-fashion', 'Fashion for men', 1, true),
+('Women Fashion', 'women-fashion', 'Fashion for women', 2, true);
+
+UPDATE Categories SET ParentCategoryId = 1 WHERE Slug IN ('smartphones', 'laptops');
+UPDATE Categories SET ParentCategoryId = 2 WHERE Slug IN ('men-fashion', 'women-fashion');
+
+-- Add sample products with images and details
+INSERT INTO Products (VendorId, CategoryId, Name, Slug, Description, ShortDescription, SKU, Price, CompareAtPrice, Cost, Quantity, LowStockThreshold, IsFeatured, IsDigital, IsActive, Rating, ReviewCount, CreatedAt, UpdatedAt) VALUES
+(1, 6, 'iPhone 15 Pro Max', 'iphone-15-pro-max', 'The iPhone 15 Pro Max features a titanium design, A17 Pro chip, and advanced camera system with 5x optical zoom. Experience the most powerful iPhone ever created.', 'Latest iPhone with titanium design and A17 Pro chip', 'IPH15PM256', 1299.99, 1399.99, 900, 50, 5, true, false, true, 4.8, 245, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 6, 'Samsung Galaxy S24 Ultra', 'samsung-galaxy-s24-ultra', 'Samsung Galaxy S24 Ultra with AI features, S Pen, and 200MP camera. The ultimate Android flagship with cutting-edge technology.', 'Premium Android flagship with S Pen', 'SGS24U512', 1199.99, 1299.99, 850, 30, 5, true, false, true, 4.7, 189, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 7, 'MacBook Pro 16" M3 Max', 'macbook-pro-16-m3-max', 'MacBook Pro 16-inch with M3 Max chip, up to 128GB unified memory, and stunning Liquid Retina XDR display. Built for professionals who need maximum performance.', 'Powerful laptop with M3 Max chip', 'MBP16M3MAX', 3999.99, 4299.99, 3200, 15, 3, true, false, true, 4.9, 98, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 7, 'Dell XPS 15', 'dell-xps-15', 'Dell XPS 15 with Intel Core i9, NVIDIA RTX 4070, and stunning OLED display. Premium Windows laptop for creators and professionals.', 'Premium Windows laptop for creators', 'DXPS15I9', 2499.99, 2799.99, 1800, 20, 5, true, false, true, 4.6, 156, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'Sony WH-1000XM5', 'sony-wh-1000xm5', 'Industry-leading noise cancellation with Auto NC Optimizer, exceptional sound quality, and up to 30-hour battery life. The best wireless headphones for audiophiles.', 'Premium noise-cancelling headphones', 'SONYWH1000', 399.99, 449.99, 250, 100, 10, true, false, true, 4.8, 567, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'Apple AirPods Pro 2', 'apple-airpods-pro-2', 'Active Noise Cancellation, Adaptive Transparency, and Personalized Spatial Audio. The most advanced AirPods ever.', 'Premium wireless earbuds with ANC', 'APDPRO2', 249.99, 279.99, 150, 200, 15, true, false, true, 4.7, 892, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 8, 'Nike Air Max 270', 'nike-air-max-270', 'Experience all-day comfort with Nike Air Max 270. Features the tallest Air unit yet for a super-soft ride that feels as good as it looks.', 'Comfortable lifestyle sneakers', 'NIKAM270BK', 150.00, 170.00, 80, 75, 10, true, false, true, 4.5, 234, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 8, 'Adidas Ultraboost 22', 'adidas-ultraboost-22', 'Ultraboost 22 running shoes with incredible energy return. Features BOOST midsole and Primeknit upper for ultimate comfort.', 'Premium running shoes', 'ADIUB22WH', 180.00, 200.00, 100, 60, 8, true, false, true, 4.6, 178, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 9, 'Levi''s 511 Slim Jeans', 'levis-511-slim-jeans', 'Classic slim fit jeans with just the right amount of stretch. Made from sustainable cotton for comfort and durability.', 'Slim fit denim jeans', 'LEV511BLU', 69.99, 89.99, 35, 120, 15, true, false, true, 4.4, 456, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 9, 'Ralph Lauren Polo Shirt', 'ralph-lauren-polo-shirt', 'Iconic polo shirt in classic fit. Made from 100% cotton mesh for breathability and comfort. A timeless wardrobe essential.', 'Classic cotton polo shirt', 'RLPOLONVY', 89.99, 98.00, 45, 80, 10, true, false, true, 4.5, 234, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'iPad Pro 12.9" M2', 'ipad-pro-12-9-m2', 'iPad Pro with M2 chip, 12.9-inch Liquid Retina XDR display, and all-day battery life. The ultimate iPad experience for professionals.', 'Professional tablet with M2 chip', 'IPADPRO129', 1099.99, 1199.99, 750, 40, 5, true, false, true, 4.8, 345, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'Samsung 65" OLED 4K TV', 'samsung-65-oled-4k', 'Experience perfect blacks and infinite contrast with Samsung OLED technology. 120Hz refresh rate for smooth gaming and sports.', 'Premium 65-inch OLED smart TV', 'SAMS65OLED', 1799.99, 2199.99, 1200, 10, 2, true, false, true, 4.7, 123, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 3, 'Instant Pot Duo 7-in-1', 'instant-pot-duo-7in1', 'Pressure cooker, slow cooker, rice cooker, steamer, sauté, yogurt maker, and warmer all in one. Makes cooking fast and easy.', 'Multi-functional pressure cooker', 'INSTPOT7IN1', 89.99, 129.99, 45, 150, 20, true, false, true, 4.6, 2341, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 3, 'Dyson V15 Detect', 'dyson-v15-detect', 'Most powerful Dyson cordless vacuum with laser dust detection. Up to 60 minutes runtime and advanced filtration system.', 'Advanced cordless vacuum cleaner', 'DYSV15DET', 749.99, 799.99, 500, 25, 5, true, false, true, 4.8, 678, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 1, 'PlayStation 5 Console', 'playstation-5-console', 'Experience lightning-fast loading with ultra-high speed SSD, deeper immersion with haptic feedback, and stunning games.', 'Next-gen gaming console', 'PS5CONSOLE', 499.99, 549.99, 350, 20, 5, true, false, true, 4.9, 1234, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- Insert product images
+INSERT INTO ProductImages (ProductId, ImageUrl, AltText, DisplayOrder, IsPrimary) VALUES
+(1, 'https://images.unsplash.com/photo-1696446701796-da61225697cc', 'iPhone 15 Pro Max Front', 1, true),
+(1, 'https://images.unsplash.com/photo-1696446702183-cbd13d78e1e7', 'iPhone 15 Pro Max Back', 2, false),
+(2, 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c', 'Samsung Galaxy S24 Ultra', 1, true),
+(3, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8', 'MacBook Pro 16', 1, true),
+(4, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45', 'Dell XPS 15', 1, true),
+(5, 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb', 'Sony WH-1000XM5', 1, true),
+(6, 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434', 'Apple AirPods Pro', 1, true),
+(7, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff', 'Nike Air Max 270', 1, true),
+(8, 'https://images.unsplash.com/photo-1556906781-9a412961c28c', 'Adidas Ultraboost', 1, true),
+(9, 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246', 'Levi''s Jeans', 1, true),
+(10, 'https://images.unsplash.com/photo-1581655353564-df123a1eb820', 'Ralph Lauren Polo', 1, true),
+(11, 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0', 'iPad Pro', 1, true),
+(12, 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1', 'Samsung OLED TV', 1, true),
+(13, 'https://images.unsplash.com/photo-1585515320310-259814833e62', 'Instant Pot', 1, true),
+(14, 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64', 'Dyson V15', 1, true),
+(15, 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db', 'PlayStation 5', 1, true);
+
+-- Insert sample product attributes
+INSERT INTO ProductAttributes (ProductId, AttributeName, AttributeValue, DisplayOrder) VALUES
+(1, 'Storage', '256GB', 1),
+(1, 'Color', 'Natural Titanium', 2),
+(1, 'Display', '6.7-inch Super Retina XDR', 3),
+(2, 'Storage', '512GB', 1),
+(2, 'RAM', '12GB', 2),
+(3, 'Memory', '64GB', 1),
+(3, 'Storage', '2TB SSD', 2),
+(5, 'Battery Life', '30 Hours', 1),
+(5, 'Color', 'Black', 2);
+
+-- Insert sample reviews
+INSERT INTO Reviews (ProductId, UserId, Rating, Title, Comment, IsVerifiedPurchase, HelpfulCount, IsApproved) VALUES
+(1, 4, 5, 'Amazing Phone!', 'The iPhone 15 Pro Max is absolutely incredible. The camera quality is outstanding and the titanium build feels premium.', true, 45, true),
+(1, 5, 4, 'Great but expensive', 'Excellent phone with amazing features, but the price is quite high. Still worth it for the quality.', true, 23, true),
+(2, 4, 5, 'Best Android Phone', 'Samsung has outdone themselves with the S24 Ultra. The S Pen functionality is fantastic.', true, 34, true),
+(3, 5, 5, 'Productivity Beast', 'The M3 Max chip is insanely fast. Perfect for video editing and development work.', true, 67, true),
+(5, 4, 5, 'Best Noise Cancellation', 'These headphones are amazing! The noise cancellation is the best I''ve ever experienced.', true, 89, true);
+
+-- Insert sample banners
+INSERT INTO Banners (Title, ImageUrl, LinkUrl, DisplayOrder, IsActive, StartDate, EndDate) VALUES
+('Holiday Sale - Up to 50% Off', 'https://images.unsplash.com/photo-1607082348824-0a96c4a4b9b3', '/products?sale=holiday', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '30 days'),
+('New iPhone 15 Series', 'https://images.unsplash.com/photo-1510557880182-3d4d3cba2a13', '/products/iphone-15-pro-max', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '15 days'),
+('Free Shipping on Orders Over $50', 'https://images.unsplash.com/photo-1578575437130-527eed3abbec', '/products', 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '60 days');
+
+-- REQUIRED Additional Queries for Vendor Functionality
+-- Run these in pgAdmin on your ShopperDb database
+
+-- 1. Add ImageUrl column to Products table if not exists (for main product image)
+ALTER TABLE Products
+ADD COLUMN IF NOT EXISTS ImageUrl VARCHAR(500);
+
+-- 2. Add SKU column to Products if not exists
+ALTER TABLE Products
+ADD COLUMN IF NOT EXISTS SKU VARCHAR(100);
+
+-- 3. Add Brand column to Products if not exists
+ALTER TABLE Products
+ADD COLUMN IF NOT EXISTS Brand VARCHAR(255);
+
+-- 4. Add SalesCount column to Products for tracking
+ALTER TABLE Products
+ADD COLUMN IF NOT EXISTS SalesCount INT DEFAULT 0;
+
+-- 5. Add VendorId column to OrderItems table if not exists
+ALTER TABLE OrderItems
+ADD COLUMN IF NOT EXISTS VendorId INT;
+
+-- 6. Update OrderItems to populate VendorId from Products
+UPDATE OrderItems oi
+SET VendorId = p.VendorId
+FROM Products p
+WHERE oi.ProductId = p.Id
+AND oi.VendorId IS NULL;
+
+-- 7. Create important indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_products_vendorid ON Products(VendorId);
+CREATE INDEX IF NOT EXISTS idx_products_categoryid ON Products(CategoryId);
+CREATE INDEX IF NOT EXISTS idx_products_isactive ON Products(IsActive);
+CREATE INDEX IF NOT EXISTS idx_orderitems_vendorid ON OrderItems(VendorId);
+CREATE INDEX IF NOT EXISTS idx_productimages_productid ON ProductImages(ProductId);
+
+-- 8. Insert sample categories if they don't exist
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Electronics', 'electronics', 'Electronic devices and accessories', '/images/categories/electronics.jpg', 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'electronics');
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Clothing', 'clothing', 'Fashion and apparel', '/images/categories/clothing.jpg', 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'clothing');
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Books', 'books', 'Books and stationery', '/images/categories/books.jpg', 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'books');
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Home & Garden', 'home-garden', 'Home decor and garden items', '/images/categories/home.jpg', 4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'home-garden');
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Sports & Outdoors', 'sports-outdoors', 'Sports equipment and outdoor gear', '/images/categories/sports.jpg', 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'sports-outdoors');
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Food & Groceries', 'food-groceries', 'Food items and groceries', '/images/categories/food.jpg', 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'food-groceries');
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Beauty & Health', 'beauty-health', 'Beauty and health products', '/images/categories/beauty.jpg', 7, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'beauty-health');
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+SELECT 'Toys & Games', 'toys-games', 'Toys and games for all ages', '/images/categories/toys.jpg', 8, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE Slug = 'toys-games');
+
+-- 9. Generate SKU for existing products if they don't have one
+UPDATE Products
+SET SKU = 'SKU-' || Id || '-' || SUBSTRING(MD5(RANDOM()::TEXT), 1, 6)
+WHERE SKU IS NULL OR SKU = '';
+
+-- 10. Set default ImageUrl for products without images
+UPDATE Products
+SET ImageUrl = 'https://via.placeholder.com/300'
+WHERE ImageUrl IS NULL OR ImageUrl = '';
+
+-- 11. Create vendor records for existing vendor users (if not already exists)
+INSERT INTO Vendors (UserId, StoreName, StoreDescription, BusinessEmail, IsApproved)
+SELECT
+    u.Id,
+    CONCAT(u.FirstName, '''s Store'),
+    'Welcome to our store!',
+    u.Email,
+    true
+FROM Users u
+WHERE u.Role = 'Vendor'
+AND NOT EXISTS (SELECT 1 FROM Vendors v WHERE v.UserId = u.Id);
+
+-- 12. Update SalesCount for existing products
+UPDATE Products p
+SET SalesCount = COALESCE((
+    SELECT SUM(oi.Quantity)
+    FROM OrderItems oi
+    WHERE oi.ProductId = p.Id
+), 0)
+WHERE SalesCount = 0;
+
+-- 13. Create a view for vendor sales statistics (helpful for analytics)
+CREATE OR REPLACE VIEW VendorSalesStatistics AS
+SELECT
+    p.VendorId,
+    COUNT(DISTINCT oi.OrderId) as TotalOrders,
+    SUM(oi.Quantity) as TotalItemsSold,
+    SUM(oi.Total) as TotalRevenue,
+    COUNT(DISTINCT p.Id) as TotalProducts,
+    COUNT(DISTINCT CASE WHEN p.IsActive THEN p.Id END) as ActiveProducts
+FROM Products p
+LEFT JOIN OrderItems oi ON p.Id = oi.ProductId
+GROUP BY p.VendorId;
+
+-- 14. Create a function to update product stock after order
+CREATE OR REPLACE FUNCTION update_product_stock()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE Products
+    SET Quantity = Quantity - NEW.Quantity,
+        UpdatedAt = CURRENT_TIMESTAMP
+    WHERE Id = NEW.ProductId;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 15. Create trigger for stock update (drop if exists first)
+DROP TRIGGER IF EXISTS update_stock_after_order ON OrderItems;
+CREATE TRIGGER update_stock_after_order
+AFTER INSERT ON OrderItems
+FOR EACH ROW
+EXECUTE FUNCTION update_product_stock();
+
+-- 16. Verification Query - Run this to check everything is set up
+SELECT
+    'Categories' as TableName, COUNT(*) as Count FROM Categories
+UNION ALL
+SELECT 'Products with Images', COUNT(*) FROM Products WHERE ImageUrl IS NOT NULL
+UNION ALL
+SELECT 'Products with SKU', COUNT(*) FROM Products WHERE SKU IS NOT NULL
+UNION ALL
+SELECT 'Vendors', COUNT(*) FROM Vendors
+UNION ALL
+SELECT 'Active Products', COUNT(*) FROM Products WHERE IsActive = true;
+
+ALTER TABLE OrderItems
+ADD COLUMN IF NOT EXISTS Subtotal DECIMAL(10,2);
+
+-- Update Subtotal for existing OrderItems
+UPDATE OrderItems
+SET Subtotal = Price * Quantity
+WHERE Subtotal IS NULL;
+
+INSERT INTO Categories (Name, Slug, Description, ImageUrl, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
+VALUES
+    ('Electronics', 'electronics', 'Electronic devices and accessories', NULL, 1, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Clothing', 'clothing', 'Fashion and apparel', NULL, 2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Home & Kitchen', 'home-kitchen', 'Home appliances and kitchen items', NULL, 3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Books', 'books', 'Books and educational materials', NULL, 4, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Sports & Outdoors', 'sports-outdoors', 'Sports equipment and outdoor gear', NULL, 5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Beauty & Personal Care', 'beauty-personal-care', 'Beauty products and personal care items', NULL, 6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Toys & Games', 'toys-games', 'Toys and games for all ages', NULL, 7, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Food & Groceries', 'food-groceries', 'Food items and groceries', NULL, 8, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (Slug) DO NOTHING;
+
+ALTER TABLE Products
+ADD COLUMN ImageData BYTEA,
+ADD COLUMN ImageMimeType VARCHAR(50);
+
+
+-- 1. Delete all existing vendor-related data
+DELETE FROM orderitems;
+DELETE FROM orders;
+DELETE FROM products;
+DELETE FROM vendors;
+DELETE FROM users WHERE role = 'Vendor';
+
+-- 2. Reset sequences if needed (optional)
+ALTER SEQUENCE vendors_id_seq RESTART WITH 1;
+ALTER SEQUENCE products_id_seq RESTART WITH 1;
+ALTER SEQUENCE orders_id_seq RESTART WITH 1;
+ALTER SEQUENCE orderitems_id_seq RESTART WITH 1;
+
+
+SET session_replication_role = 'replica';
+
+-- Delete everything in order
+DELETE FROM orderitems;
+DELETE FROM orders;
+DELETE FROM cartitems;
+DELETE FROM reviews;
+DELETE FROM products;
+DELETE FROM productattributes;
+DELETE FROM productvariations;
+DELETE FROM vendors;
+DELETE FROM addresses;
+DELETE FROM notifications;
+DELETE FROM coupons;
+DELETE FROM users;
+DELETE FROM categories;
+DELETE FROM banners;
+
+-- Re-enable foreign key checks
+SET session_replication_role = 'origin';
+
+-- Reset all sequences to 1
+ALTER SEQUENCE users_id_seq RESTART WITH 1;
+ALTER SEQUENCE vendors_id_seq RESTART WITH 1;
+ALTER SEQUENCE products_id_seq RESTART WITH 1;
+ALTER SEQUENCE orders_id_seq RESTART WITH 1;
+ALTER SEQUENCE orderitems_id_seq RESTART WITH 1;
+ALTER SEQUENCE categories_id_seq RESTART WITH 1;
+ALTER SEQUENCE addresses_id_seq RESTART WITH 1;
+ALTER SEQUENCE reviews_id_seq RESTART WITH 1;
+ALTER SEQUENCE notifications_id_seq RESTART WITH 1;
+ALTER SEQUENCE coupons_id_seq RESTART WITH 1;
+ALTER SEQUENCE banners_id_seq RESTART WITH 1;
+ALTER SEQUENCE cartitems_id_seq RESTART WITH 1;
+
+-- ================================================
+-- SETUP INITIAL DATA
+-- ================================================
+
+-- 1. Create categories
+INSERT INTO categories (name, slug, description, imageurl, isactive, createdat, updatedat)
+VALUES
+('Electronics', 'electronics', 'Electronic items', 'https://via.placeholder.com/300', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Clothing', 'clothing', 'Fashion and apparel', 'https://via.placeholder.com/300', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('Books', 'books', 'Books and publications', 'https://via.placeholder.com/300', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- ================================================
+-- VERIFICATION
+-- ================================================
+SELECT 'CLEANUP COMPLETE!' as message;
+
+SELECT
+    'Users' as table_name, COUNT(*) as count FROM users
+UNION ALL
+SELECT 'Vendors', COUNT(*) FROM vendors
+UNION ALL
+SELECT 'Products', COUNT(*) FROM products
+UNION ALL
+SELECT 'Orders', COUNT(*) FROM orders
+UNION ALL
+SELECT 'Categories', COUNT(*) FROM categories;
+
+
+
+
+-- =====================================================
+-- IMMEDIATE FIX FOR VENDOR ORDERS
+-- =====================================================
+-- This script will make orders appear in vendor dashboard
+
+-- STEP 1: Check current state
+SELECT 'CURRENT VENDORS:' as info;
+SELECT id, userid, storename FROM vendors;
+
+SELECT 'CURRENT PRODUCTS AND THEIR VENDORS:' as info;
+SELECT id, name, vendorid FROM products;
+
+SELECT 'CURRENT ORDERITEMS AND THEIR VENDORS:' as info;
+SELECT oi.id, oi.orderid, oi.productid, oi.vendorid as current_vendorid, p.vendorid as product_vendorid
+FROM orderitems oi
+LEFT JOIN products p ON oi.productid = p.id;
+
+-- STEP 2: THE FIX - Copy vendorid from products to orderitems
+UPDATE orderitems oi
+SET vendorid = p.vendorid
+FROM products p
+WHERE oi.productid = p.id
+AND (oi.vendorid IS NULL OR oi.vendorid != p.vendorid);
+
+-- STEP 3: Verify the fix
+SELECT 'AFTER FIX - ORDERITEMS WITH VENDORS:' as info;
+SELECT oi.id, oi.orderid, oi.productid, oi.vendorid, p.name as product_name
+FROM orderitems oi
+LEFT JOIN products p ON oi.productid = p.id;
+
+-- STEP 4: Check what vendor will see (assuming vendor id is 1)
+-- CHANGE THE NUMBER 1 to your actual vendor id if different
+SELECT 'ORDERS VISIBLE TO VENDOR 1:' as info;
+SELECT DISTINCT o.id, o.ordernumber, o.status, o.totalamount, o.createdat
+FROM orders o
+INNER JOIN orderitems oi ON o.id = oi.orderid
+WHERE oi.vendorid = 1
+ORDER BY o.createdat DESC;
+
+-- STEP 5: Summary
+SELECT 'SUMMARY:' as info;
+SELECT
+    'Total Orders' as metric, COUNT(DISTINCT id) as value FROM orders
+UNION ALL
+SELECT
+    'OrderItems with VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'Orders for Vendor 1', COUNT(DISTINCT orderid) FROM orderitems WHERE vendorid = 1;
+
+
+
+
+
+
+UPDATE orderitems oi
+SET vendorid = p.vendorid
+FROM products p
+WHERE oi.productid = p.id
+AND (oi.vendorid IS NULL OR oi.vendorid != p.vendorid)
+
+
+-- =====================================================
+-- COMPLETE FIX FOR ALL ISSUES
+-- =====================================================
+
+-- STEP 1: First, let's see the current state
+SELECT '=== CURRENT STATE ===' as info;
+SELECT
+    'Total Vendors' as metric, COUNT(*) as count FROM vendors
+UNION ALL
+SELECT
+    'Products with VendorId', COUNT(*) FROM products WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'Products without VendorId', COUNT(*) FROM products WHERE vendorid IS NULL
+UNION ALL
+SELECT
+    'OrderItems with VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'OrderItems without VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NULL;
+
+-- STEP 2: Make sure ALL products have a vendorid
+-- If you only have one vendor, this will assign all products to that vendor
+UPDATE products
+SET vendorid = (SELECT id FROM vendors LIMIT 1)
+WHERE vendorid IS NULL;
+
+-- STEP 3: Fix ALL existing orderitems to have the correct vendorid from products
+UPDATE orderitems oi
+SET vendorid = p.vendorid
+FROM products p
+WHERE oi.productid = p.id
+AND (oi.vendorid IS NULL OR oi.vendorid != p.vendorid);
+
+-- STEP 4: Check if the fix worked
+SELECT '=== AFTER FIX ===' as info;
+SELECT
+    'Products with VendorId' as metric, COUNT(*) as count FROM products WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'OrderItems with VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NOT NULL
+UNION ALL
+SELECT
+    'OrderItems without VendorId', COUNT(*) FROM orderitems WHERE vendorid IS NULL;
+
+-- STEP 5: Show what each vendor will see
+SELECT '=== VENDOR ORDERS ===' as info;
+SELECT
+    v.id as vendor_id,
+    v.storename,
+    COUNT(DISTINCT oi.orderid) as total_orders,
+    COUNT(oi.id) as total_items,
+    COALESCE(SUM(oi.price * oi.quantity), 0) as total_revenue
+FROM vendors v
+LEFT JOIN orderitems oi ON oi.vendorid = v.id
+GROUP BY v.id, v.storename;
+
+-- STEP 6: Show specific orders for vendor 1
+SELECT '=== ORDERS FOR VENDOR 1 ===' as info;
+SELECT DISTINCT
+    o.id,
+    o.ordernumber,
+    o.status,
+    o.totalamount,
+    o.createdat,
+    COUNT(oi.id) as items_count
+FROM orders o
+INNER JOIN orderitems oi ON o.id = oi.orderid
+WHERE oi.vendorid = 1
+GROUP BY o.id, o.ordernumber, o.status, o.totalamount, o.createdat
+ORDER BY o.createdat DESC;
+
+-- STEP 7: Fix stock that was reduced twice (OPTIONAL - only if needed)
+-- This query shows products and how much was ordered
+SELECT '=== STOCK ANALYSIS ===' as info;
+SELECT
+    p.id,
+    p.name,
+    p.quantity as current_stock,
+    COALESCE(SUM(oi.quantity), 0) as total_ordered,
+    p.quantity + COALESCE(SUM(oi.quantity), 0) as should_have_been
+FROM products p
+LEFT JOIN orderitems oi ON p.id = oi.productid
+GROUP BY p.id, p.name, p.quantity
+ORDER BY p.id;
+
+-- If you need to restore stock (because it was reduced twice), uncomment and run:
+-- UPDATE products p
+-- SET quantity = p.quantity + ordered.total_ordered
+-- FROM (
+--     SELECT productid, SUM(quantity) as total_ordered
+--     FROM orderitems
+--     GROUP BY productid
+-- ) ordered
+-- WHERE p.id = ordered.productid;
+
+-- STEP 8: Final verification
+SELECT '=== FINAL CHECK ===' as info;
+SELECT
+    'Orders exist' as check_item,
+    CASE WHEN COUNT(*) > 0 THEN 'YES' ELSE 'NO' END as status
+FROM orders
+UNION ALL
+SELECT
+    'All OrderItems have VendorId',
+    CASE WHEN COUNT(*) = 0 THEN 'YES' ELSE 'NO - ' || COUNT(*)::text || ' missing' END
+FROM orderitems WHERE vendorid IS NULL
+UNION ALL
+SELECT
+    'All Products have VendorId',
+    CASE WHEN COUNT(*) = 0 THEN 'YES' ELSE 'NO - ' || COUNT(*)::text || ' missing' END
+FROM products WHERE vendorid IS NULL
+UNION ALL
+SELECT
+    'Vendor 1 has orders',
+    CASE WHEN COUNT(DISTINCT orderid) > 0 THEN 'YES - ' || COUNT(DISTINCT orderid)::text || ' orders' ELSE 'NO' END
+FROM orderitems WHERE vendorid = 1;
+
+-- Check orders in database
+SELECT
+    o.id,
+    o.ordernumber,
+    o.userid,
+    o.status,
+    o.paymentstatus,
+    o.totalamount,
+    o.createdat,
+    u.email as user_email
+FROM orders o
+LEFT JOIN users u ON o.userid = u.id
+ORDER BY o.createdat DESC
+LIMIT 10;
+
+-- Check orderitems
+SELECT
+    oi.id,
+    oi.orderid,
+    oi.productid,
+    oi.vendorid,
+    oi.productname,
+    oi.quantity,
+    oi.price,
+    oi.total
+FROM orderitems oi
+WHERE oi.orderid IN (SELECT id FROM orders ORDER BY createdat DESC LIMIT 5);
+
+-- Check if vendor ID exists in orderitems
+SELECT DISTINCT vendorid FROM orderitems WHERE vendorid IS NOT NULL;
+
+-- Check vendor data
+SELECT id, userid, storename FROM vendors;
+
+-- Fix enum columns by changing them to text type
+-- This makes the database more compatible with Entity Framework Core
+
+-- Change orders table columns
+ALTER TABLE orders
+ALTER COLUMN status TYPE text,
+ALTER COLUMN paymentmethod TYPE text,
+ALTER COLUMN paymentstatus TYPE text;
+
+-- Change users table column
+ALTER TABLE users
+ALTER COLUMN role TYPE text;
+
+-- Change payments table columns
+ALTER TABLE payments
+ALTER COLUMN paymentmethod TYPE text,
+ALTER COLUMN status TYPE text;
+
+-- Add check constraints to maintain data integrity (optional)
+-- These ensure only valid values are inserted
+
+ALTER TABLE orders
+ADD CONSTRAINT check_order_status CHECK (status IN ('Pending', 'Processing', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')),
+ADD CONSTRAINT check_payment_method CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status CHECK (paymentstatus IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+ALTER TABLE users
+ADD CONSTRAINT check_user_role CHECK (role IN ('Customer', 'Admin', 'Vendor', 'Support'));
+
+ALTER TABLE payments
+ADD CONSTRAINT check_payment_method_payments CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status_payments CHECK (status IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+
+-- Drop existing constraints first (if they exist)
+ALTER TABLE IF EXISTS orders
+DROP CONSTRAINT IF EXISTS check_order_status,
+DROP CONSTRAINT IF EXISTS check_payment_method,
+DROP CONSTRAINT IF EXISTS check_payment_status;
+
+ALTER TABLE IF EXISTS users
+DROP CONSTRAINT IF EXISTS check_user_role;
+
+ALTER TABLE IF EXISTS payments
+DROP CONSTRAINT IF EXISTS check_payment_method_payments,
+DROP CONSTRAINT IF EXISTS check_payment_status_payments;
+
+-- Now convert enum columns to text
+-- For orders table
+ALTER TABLE orders
+ALTER COLUMN status TYPE text USING status::text,
+ALTER COLUMN paymentmethod TYPE text USING paymentmethod::text,
+ALTER COLUMN paymentstatus TYPE text USING paymentstatus::text;
+
+-- For users table
+ALTER TABLE users
+ALTER COLUMN role TYPE text USING role::text;
+
+-- For payments table
+ALTER TABLE payments
+ALTER COLUMN paymentmethod TYPE text USING paymentmethod::text,
+ALTER COLUMN status TYPE text USING status::text;
+
+-- Now add check constraints to maintain data integrity
+ALTER TABLE orders
+ADD CONSTRAINT check_order_status CHECK (status IN ('Pending', 'Processing', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')),
+ADD CONSTRAINT check_payment_method CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status CHECK (paymentstatus IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+ALTER TABLE users
+ADD CONSTRAINT check_user_role CHECK (role IN ('Customer', 'Admin', 'Vendor', 'Support'));
+
+ALTER TABLE payments
+ADD CONSTRAINT check_payment_method_payments CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status_payments CHECK (status IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+-- Drop the enum types if they're no longer needed
+DROP TYPE IF EXISTS order_status CASCADE;
+DROP TYPE IF EXISTS payment_method CASCADE;
+DROP TYPE IF EXISTS payment_status CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
+-- Force fix for enum columns - Complete solution
+-- This script will drop and recreate columns to ensure enum types are removed
+
+-- Step 1: Drop existing check constraints if they exist
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_order_status;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_payment_method;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_payment_status;
+ALTER TABLE users DROP CONSTRAINT IF EXISTS check_user_role;
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS check_payment_method_payments;
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS check_payment_status_payments;
+
+-- Step 2: Add temporary columns with text type
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS status_temp text,
+ADD COLUMN IF NOT EXISTS paymentmethod_temp text,
+ADD COLUMN IF NOT EXISTS paymentstatus_temp text;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS role_temp text;
+
+ALTER TABLE payments
+ADD COLUMN IF NOT EXISTS paymentmethod_temp text,
+ADD COLUMN IF NOT EXISTS status_temp text;
+
+-- Step 3: Copy data from enum columns to temp columns
+UPDATE orders
+SET status_temp = status::text,
+    paymentmethod_temp = paymentmethod::text,
+    paymentstatus_temp = paymentstatus::text;
+
+UPDATE users
+SET role_temp = role::text;
+
+UPDATE payments
+SET paymentmethod_temp = paymentmethod::text,
+    status_temp = status::text;
+
+-- Step 4: Drop the original enum columns
+ALTER TABLE orders
+DROP COLUMN IF EXISTS status,
+DROP COLUMN IF EXISTS paymentmethod,
+DROP COLUMN IF EXISTS paymentstatus;
+
+ALTER TABLE users
+DROP COLUMN IF EXISTS role;
+
+ALTER TABLE payments
+DROP COLUMN IF EXISTS paymentmethod,
+DROP COLUMN IF EXISTS status;
+
+-- Step 5: Rename temp columns to original names
+ALTER TABLE orders
+RENAME COLUMN status_temp TO status;
+ALTER TABLE orders
+RENAME COLUMN paymentmethod_temp TO paymentmethod;
+ALTER TABLE orders
+RENAME COLUMN paymentstatus_temp TO paymentstatus;
+
+ALTER TABLE users
+RENAME COLUMN role_temp TO role;
+
+ALTER TABLE payments
+RENAME COLUMN paymentmethod_temp TO paymentmethod;
+ALTER TABLE payments
+RENAME COLUMN status_temp TO status;
+
+-- Step 6: Add NOT NULL constraints where needed
+ALTER TABLE orders
+ALTER COLUMN status SET NOT NULL,
+ALTER COLUMN paymentmethod SET NOT NULL,
+ALTER COLUMN paymentstatus SET NOT NULL;
+
+ALTER TABLE users
+ALTER COLUMN role SET NOT NULL;
+
+ALTER TABLE payments
+ALTER COLUMN paymentmethod SET NOT NULL,
+ALTER COLUMN status SET NOT NULL;
+
+-- Step 7: Set default values
+ALTER TABLE orders
+ALTER COLUMN status SET DEFAULT 'Pending',
+ALTER COLUMN paymentstatus SET DEFAULT 'Pending';
+
+ALTER TABLE users
+ALTER COLUMN role SET DEFAULT 'Customer';
+
+ALTER TABLE payments
+ALTER COLUMN status SET DEFAULT 'Pending';
+
+-- Step 8: Add check constraints for data validation
+ALTER TABLE orders
+ADD CONSTRAINT check_order_status CHECK (status IN ('Pending', 'Processing', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Refunded')),
+ADD CONSTRAINT check_payment_method CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status CHECK (paymentstatus IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+ALTER TABLE users
+ADD CONSTRAINT check_user_role CHECK (role IN ('Customer', 'Admin', 'Vendor', 'Support'));
+
+ALTER TABLE payments
+ADD CONSTRAINT check_payment_method_payments CHECK (paymentmethod IN ('CreditCard', 'DebitCard', 'PayPal', 'CashOnDelivery', 'BankTransfer')),
+ADD CONSTRAINT check_payment_status_payments CHECK (status IN ('Pending', 'Processing', 'Completed', 'Failed', 'Refunded', 'Cancelled'));
+
+-- Step 9: Drop the enum types if they exist
+DROP TYPE IF EXISTS order_status CASCADE;
+DROP TYPE IF EXISTS payment_method CASCADE;
+DROP TYPE IF EXISTS payment_status CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
+-- Verify the changes
+SELECT
+    column_name,
+    data_type,
+    column_default,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'orders'
+    AND column_name IN ('status', 'paymentmethod', 'paymentstatus');
+
+SELECT
+    column_name,
+    data_type,
+    column_default,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'users'
+    AND column_name = 'role';
+
+SELECT
+    column_name,
+    data_type,
+    column_default,
+    is_nullable
+FROM information_schema.columns
+WHERE table_name = 'payments'
+    AND column_name IN ('paymentmethod', 'status');
