@@ -4,7 +4,7 @@ import { ProductList } from './product.model';
 export interface Order {
   id: number;
   orderNumber: string;
-  userId?: number;  // Added to match backend DTO
+  userId?: number;
   status: OrderStatus;
   subTotal: number;
   subtotal: number;

@@ -90,34 +90,30 @@ namespace ShopperBackend.Services
                         Quantity = oi.Quantity,
                         Price = oi.Price,
                         Subtotal = oi.Price * oi.Quantity,
-                        Status = o.Status  // Use the order's status, not hardcoded "Pending"
+                        Status = o.Status
                     }).ToList() ?? new List<OrderItemDto>()
             });
         }
 
         public async Task UpdateOrderStatusAsync(int orderId, int vendorId, string newStatus)
         {
-            // First, verify the vendor has items in this order
             var orderItems = await _orderRepository.GetOrderItemsAsync(orderId);
             if (orderItems == null || !orderItems.Any(oi => oi.VendorId == vendorId))
             {
                 throw new Exception("Order not found or vendor has no items in this order");
             }
 
-            // Get the current order to check its status
             var currentOrder = await _orderRepository.GetByIdAsync(orderId);
             if (currentOrder == null)
             {
                 throw new Exception("Order not found");
             }
 
-            // Validate the status transition
             if (!OrderStatus.CanTransitionTo(currentOrder.Status, newStatus))
             {
                 throw new Exception($"Cannot transition order from {currentOrder.Status} to {newStatus}");
             }
 
-            // Update the order status
             await _orderRepository.UpdateOrderStatusAsync(orderId, newStatus);
         }
 
@@ -231,7 +227,7 @@ namespace ShopperBackend.Services
                         Quantity = oi.Quantity,
                         Price = oi.Price,
                         Subtotal = oi.Price * oi.Quantity,
-                        Status = o.Status  // Use the order's status, not hardcoded "Pending"
+                        Status = o.Status
                     }).ToList() ?? new List<OrderItemDto>()
             }).ToList();
 

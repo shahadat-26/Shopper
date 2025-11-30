@@ -13,7 +13,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
   imports: [CommonModule, RouterLink, ReactiveFormsModule, FormsModule],
   template: `
     <div class="min-h-screen bg-gray-50">
-      <!-- Hero Section -->
       <div class="bg-navy-900 text-white py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 class="text-3xl font-bold">Shop All Products</h1>
@@ -23,12 +22,10 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex gap-8">
-          <!-- Filters Sidebar -->
           <div class="hidden lg:block w-64 flex-shrink-0">
             <div class="bg-white rounded-lg shadow p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Filters</h3>
 
-              <!-- Search -->
               <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
                 <input
@@ -40,7 +37,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
                 >
               </div>
 
-              <!-- Categories -->
               <div class="mb-6">
                 <h4 class="text-sm font-medium text-gray-900 mb-3">Categories</h4>
                 <div class="space-y-2">
@@ -70,7 +66,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
                 </div>
               </div>
 
-              <!-- Price Range -->
               <div class="mb-6">
                 <h4 class="text-sm font-medium text-gray-900 mb-3">Price Range</h4>
                 <div class="space-y-2">
@@ -91,7 +86,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
                 </div>
               </div>
 
-              <!-- Sort -->
               <div class="mb-6">
                 <h4 class="text-sm font-medium text-gray-900 mb-3">Sort By</h4>
                 <select
@@ -107,7 +101,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
                 </select>
               </div>
 
-              <!-- Clear Filters -->
               <button
                 (click)="clearFilters()"
                 class="w-full px-4 py-2 text-sm text-navy-600 border border-navy-600 rounded-md hover:bg-navy-50"
@@ -117,9 +110,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
             </div>
           </div>
 
-          <!-- Products Grid -->
           <div class="flex-1">
-            <!-- Mobile Filter Toggle -->
             <div class="lg:hidden mb-4">
               <button
                 (click)="toggleMobileFilters()"
@@ -132,7 +123,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
               </button>
             </div>
 
-            <!-- Results Info -->
             <div class="flex justify-between items-center mb-6">
               <p class="text-gray-700">
                 Showing {{ products().length }} of {{ totalCount() }} products
@@ -160,7 +150,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
               </div>
             </div>
 
-            <!-- Loading State -->
             @if (loading()) {
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 @for (i of [1,2,3,4,5,6]; track i) {
@@ -173,7 +162,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
               </div>
             }
 
-            <!-- Products Grid View -->
             @if (!loading() && viewMode() === 'grid') {
               @if (products().length > 0) {
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -235,7 +223,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
               }
             }
 
-            <!-- Products List View -->
             @if (!loading() && viewMode() === 'list') {
               @if (products().length > 0) {
                 <div class="space-y-4">
@@ -290,7 +277,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
               }
             }
 
-            <!-- Pagination -->
             @if (totalPages() > 1) {
               <div class="mt-8 flex justify-center">
                 <nav class="flex items-center gap-1">

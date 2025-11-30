@@ -15,7 +15,7 @@ namespace ShopperBackend.DTOs
         public string ShortDescription { get; set; }
         public string SKU { get; set; }
         public string ImageUrl { get; set; }
-        public string ImageData { get; set; }  // Base64 string for frontend
+        public string ImageData { get; set; }
         public string ImageMimeType { get; set; }
         public decimal Price { get; set; }
         public decimal? CompareAtPrice { get; set; }

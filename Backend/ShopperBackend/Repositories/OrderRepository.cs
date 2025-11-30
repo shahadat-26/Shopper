@@ -135,7 +135,6 @@ namespace ShopperBackend.Repositories
                     item.Price = item.Product.Price;
                 }
 
-                // Calculate subtotal if it's null or 0
                 if (!item.Subtotal.HasValue || item.Subtotal == 0)
                 {
                     item.Subtotal = item.Price * item.Quantity;

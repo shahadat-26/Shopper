@@ -21,7 +21,6 @@ import { Order } from '../../models/order.model';
           <p class="text-gray-600 mt-2">Manage your products and orders</p>
         </div>
 
-        <!-- Stats Cards -->
         <div class="grid md:grid-cols-4 gap-6 mb-8">
           <div class="bg-white rounded-lg shadow-sm p-6">
             <div class="flex items-center justify-between">
@@ -76,7 +75,6 @@ import { Order } from '../../models/order.model';
           </div>
         </div>
 
-        <!-- Tabs -->
         <div class="bg-white rounded-lg shadow-sm">
           <div class="border-b">
             <nav class="flex -mb-px">
@@ -107,7 +105,6 @@ import { Order } from '../../models/order.model';
             </nav>
           </div>
 
-          <!-- Products Tab -->
           <div *ngIf="activeTab === 'products'" class="p-6">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-semibold text-gray-900">Manage Products</h2>
@@ -117,7 +114,6 @@ import { Order } from '../../models/order.model';
               </button>
             </div>
 
-            <!-- Product Form -->
             <div *ngIf="showProductForm" class="bg-gray-50 rounded-lg p-6 mb-6">
               <h3 class="text-lg font-semibold mb-4">{{ editingProduct ? 'Edit' : 'Add New' }} Product</h3>
               <form (submit)="saveProduct($event)" class="space-y-4">
@@ -214,7 +210,6 @@ import { Order } from '../../models/order.model';
               </form>
             </div>
 
-            <!-- Products List -->
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -296,7 +291,6 @@ import { Order } from '../../models/order.model';
             </div>
           </div>
 
-          <!-- Orders Tab -->
           <div *ngIf="activeTab === 'orders'" class="p-6">
             <div class="flex justify-between items-center mb-6">
               <h2 class="text-xl font-semibold text-gray-900">Recent Orders</h2>
@@ -389,7 +383,6 @@ import { Order } from '../../models/order.model';
             </div>
           </div>
 
-          <!-- Analytics Tab -->
           <div *ngIf="activeTab === 'analytics'" class="p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-6">Sales Analytics</h2>
 

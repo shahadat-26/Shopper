@@ -40,7 +40,6 @@ namespace ShopperBackend.Data
         {
             optionsBuilder.UseNpgsql(o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
 
-            // Configure Npgsql to use UTC for all timestamps
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
 
             base.OnConfiguring(optionsBuilder);
@@ -50,7 +49,6 @@ namespace ShopperBackend.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure all DateTime properties to be treated as UTC
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 foreach (var property in entityType.GetProperties())

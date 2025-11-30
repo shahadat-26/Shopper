@@ -58,7 +58,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 32,
+          "SelectedChildIndex": 31,
           "Children": [
             {
               "$type": "Bookmark",
@@ -158,19 +158,6 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ShopperDbContext.cs",
-              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\ShopperDbContext.cs",
-              "RelativeDocumentMoniker": "Data\\ShopperDbContext.cs",
-              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\ShopperDbContext.cs",
-              "RelativeToolTip": "Data\\ShopperDbContext.cs",
-              "ViewState": "AgIAAGMAAAAAAAAAAAAcwAUAAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T19:23:38.128Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 4,
               "Title": "OrderService.cs",
               "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Services\\OrderService.cs",
@@ -179,8 +166,7 @@
               "RelativeToolTip": "Services\\OrderService.cs",
               "ViewState": "AgIAAKAAAAAAAAAAAADwv64AAAAeAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T18:28:32.992Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T18:28:32.992Z"
             },
             {
               "$type": "Document",
@@ -192,8 +178,7 @@
               "RelativeToolTip": "Services\\VendorService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T18:28:30.386Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T18:28:30.386Z"
             },
             {
               "$type": "Document",
@@ -205,8 +190,7 @@
               "RelativeToolTip": "Services\\CategoryService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T18:28:24.36Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T18:28:24.36Z"
             },
             {
               "$type": "Document",
@@ -218,8 +202,7 @@
               "RelativeToolTip": "Repositories\\ProductRepository.cs",
               "ViewState": "AgIAABkAAAAAAAAAAAAYwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T18:28:15.221Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T18:28:15.221Z"
             },
             {
               "$type": "Document",
@@ -231,8 +214,7 @@
               "RelativeToolTip": "Repositories\\UserRepository.cs",
               "ViewState": "AgIAACsAAAAAAAAAAAAswAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T18:28:10.576Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T18:28:10.576Z"
             },
             {
               "$type": "Document",
@@ -244,8 +226,7 @@
               "RelativeToolTip": "Repositories\\OrderRepository.cs",
               "ViewState": "AgIAAKkAAAAAAAAAAAAwwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T18:27:44.611Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T18:27:44.611Z"
             },
             {
               "$type": "Document",
@@ -257,8 +238,7 @@
               "RelativeToolTip": "DTOs\\ReviewDtos.cs",
               "ViewState": "AgIAADEAAAAAAAAAAAAwwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-29T18:27:38.554Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-29T18:27:38.554Z"
             },
             {
               "$type": "Document",
@@ -268,10 +248,22 @@
               "RelativeDocumentMoniker": "DatabaseQuery\\Query.txt",
               "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\DatabaseQuery\\Query.txt",
               "RelativeToolTip": "DatabaseQuery\\Query.txt",
-              "ViewState": "AgIAAF8EAAAAAAAAAAAowIIEAAAzAAAAAAAAAA==",
+              "ViewState": "AgIAAGEEAAAAAAAAAAAIwIIEAAAzAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
               "WhenOpened": "2025-11-28T15:52:50.729Z",
               "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ShopperDbContext.cs",
+              "DocumentMoniker": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\ShopperDbContext.cs",
+              "RelativeDocumentMoniker": "Data\\ShopperDbContext.cs",
+              "ToolTip": "D:\\Learning\\Shopper\\Backend\\ShopperBackend\\Data\\ShopperDbContext.cs",
+              "RelativeToolTip": "Data\\ShopperDbContext.cs",
+              "ViewState": "AgIAAGMAAAAAAAAAAAAcwAUAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-29T19:23:38.128Z"
             },
             {
               "$type": "Document",
@@ -283,8 +275,7 @@
               "RelativeToolTip": "Data\\AppDbContext.cs",
               "ViewState": "AgIAAAwAAAAAAAAAAAAowAUAAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-28T15:47:16.208Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-28T15:47:16.208Z"
             },
             {
               "$type": "Document",
@@ -308,8 +299,7 @@
               "RelativeToolTip": "Program.cs",
               "ViewState": "AgIAAG8AAAAAAAAAAIAwwH8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-28T14:27:05.228Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-28T14:27:05.228Z"
             }
           ]
         }

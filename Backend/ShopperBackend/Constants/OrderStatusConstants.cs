@@ -10,7 +10,6 @@ namespace ShopperBackend.Constants
         public const string Cancelled = "Cancelled";
         public const string Refunded = "Refunded";
 
-        // Allowed transitions - defines what statuses can transition to what
         public static readonly Dictionary<string, string[]> AllowedTransitions = new()
         {
             [Pending] = new[] { Confirmed, Cancelled },
@@ -18,8 +17,8 @@ namespace ShopperBackend.Constants
             [Processing] = new[] { Shipped, Cancelled },
             [Shipped] = new[] { Delivered },
             [Delivered] = new[] { Refunded },
-            [Cancelled] = Array.Empty<string>(),  // Terminal state
-            [Refunded] = Array.Empty<string>()    // Terminal state
+            [Cancelled] = Array.Empty<string>(),
+            [Refunded] = Array.Empty<string>()
         };
 
         public static bool CanTransitionTo(string fromStatus, string toStatus)

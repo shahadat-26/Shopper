@@ -225,7 +225,7 @@ namespace ShopperBackend.Services
             {
                 Id = order.Id,
                 OrderNumber = order.OrderNumber,
-                UserId = order.UserId,  // Added missing UserId
+                UserId = order.UserId,
                 Status = order.Status,
                 SubTotal = order.SubTotal,
                 TaxAmount = order.TaxAmount,
@@ -236,9 +236,9 @@ namespace ShopperBackend.Services
                 PaymentStatus = order.PaymentStatus,
                 TrackingNumber = order.TrackingNumber,
                 EstimatedDelivery = order.EstimatedDelivery,
-                Notes = order.Notes,  // Added missing Notes
+                Notes = order.Notes,
                 CreatedAt = order.CreatedAt,
-                UpdatedAt = order.UpdatedAt,  // Added missing UpdatedAt
+                UpdatedAt = order.UpdatedAt,
                 User = order.User != null ? new UserDto
                 {
                     Id = order.User.Id,
@@ -309,7 +309,7 @@ namespace ShopperBackend.Services
                 Discount = item.Discount,
                 Tax = item.Tax,
                 Total = item.Total,
-                Status = orderStatus,  // Use the order's status instead of hardcoded "Pending"
+                Status = orderStatus,
                 Product = productDto
             };
         }

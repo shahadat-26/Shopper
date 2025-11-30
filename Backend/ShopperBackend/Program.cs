@@ -8,7 +8,6 @@ using ShopperBackend.Helpers;
 using ShopperBackend.Repositories;
 using ShopperBackend.Services;
 
-// Configure Npgsql to handle timestamps as UTC
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
 
 var builder = WebApplication.CreateBuilder(args);

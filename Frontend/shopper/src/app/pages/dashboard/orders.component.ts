@@ -61,7 +61,6 @@ interface Order {
           <div class="space-y-6">
             @for (order of orders(); track order.orderNumber) {
               <div class="bg-white rounded-lg shadow overflow-hidden">
-                <!-- Order Header -->
                 <div class="bg-gray-50 px-6 py-4 border-b">
                   <div class="flex flex-wrap items-center justify-between gap-4">
                     <div class="flex items-center gap-6">
@@ -91,10 +90,8 @@ interface Order {
                   </div>
                 </div>
 
-                <!-- Order Items (Collapsible) -->
                 @if (expandedOrders().includes(order.orderNumber)) {
                   <div class="p-6">
-                    <!-- Items List -->
                     <div class="mb-6">
                       <h3 class="font-semibold text-gray-900 mb-4">Order Items</h3>
                       <div class="space-y-4">
@@ -115,9 +112,7 @@ interface Order {
                       </div>
                     </div>
 
-                    <!-- Order Summary -->
                     <div class="grid md:grid-cols-2 gap-6">
-                      <!-- Shipping Address -->
                       <div>
                         <h3 class="font-semibold text-gray-900 mb-3">Shipping Address</h3>
                         <div class="text-sm text-gray-600 space-y-1">
@@ -130,7 +125,6 @@ interface Order {
                         </div>
                       </div>
 
-                      <!-- Payment Summary -->
                       <div>
                         <h3 class="font-semibold text-gray-900 mb-3">Payment Summary</h3>
                         <dl class="space-y-2 text-sm">
@@ -164,7 +158,6 @@ interface Order {
                       </div>
                     }
 
-                    <!-- Action Buttons -->
                     <div class="mt-6 pt-6 border-t flex gap-3">
                       @if (order.status === 'Pending' || order.status === 'Processing') {
                         <button (click)="cancelOrder(order.id, order.orderNumber)"
