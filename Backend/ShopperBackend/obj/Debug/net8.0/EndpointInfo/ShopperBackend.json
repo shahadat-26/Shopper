@@ -1869,15 +1869,18 @@
           },
           "discount": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "tax": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "subtotal": {
             "type": "number",
-            "format": "double"
+            "format": "double",
+            "nullable": true
           },
           "total": {
             "type": "number",

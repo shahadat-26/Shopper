@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using ShopperBackend.Services;
 using ShopperBackend.DTOs;
 using System.Security.Claims;
+using ShopperBackend.Constants;
 
 namespace ShopperBackend.Controllers
 {
@@ -145,7 +146,7 @@ namespace ShopperBackend.Controllers
             {
                 return BadRequest("Vendor profile not found.");
             }
-            await _vendorService.UpdateOrderStatusAsync(orderId, vendor.Id, "Cancelled");
+            await _vendorService.UpdateOrderStatusAsync(orderId, vendor.Id, OrderStatus.Cancelled);
             return NoContent();
         }
 
@@ -158,7 +159,7 @@ namespace ShopperBackend.Controllers
             {
                 return BadRequest("Vendor profile not found.");
             }
-            await _vendorService.UpdateOrderStatusAsync(orderId, vendor.Id, "Delivered");
+            await _vendorService.UpdateOrderStatusAsync(orderId, vendor.Id, OrderStatus.Delivered);
             return NoContent();
         }
 

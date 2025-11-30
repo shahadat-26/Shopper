@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using ShopperBackend.DTOs;
 using ShopperBackend.Models;
 using ShopperBackend.Repositories;
+using ShopperBackend.Constants;
 
 namespace ShopperBackend.Services
 {
@@ -51,14 +52,14 @@ namespace ShopperBackend.Services
             {
                 UserId = userId,
                 OrderNumber = GenerateOrderNumber(),
-                Status = "Pending",
+                Status = OrderStatus.Pending,
                 SubTotal = 0,
                 TaxAmount = 0,
                 ShippingAmount = 50,
                 DiscountAmount = 0,
                 TotalAmount = 0,
-                PaymentMethod = "CashOnDelivery",
-                PaymentStatus = "Pending",
+                PaymentMethod = PaymentMethod.CashOnDelivery,
+                PaymentStatus = PaymentStatus.Pending,
                 Notes = createDto.Notes,
                 ShippingAddressId = createDto.ShippingAddressId,
                 BillingAddressId = createDto.BillingAddressId,
@@ -188,12 +189,12 @@ namespace ShopperBackend.Services
                 throw new Exception("Order not found or unauthorized");
             }
 
-            if (order.Status != "Pending" && order.Status != "Confirmed")
+            if (!OrderStatus.IsCancellable(order.Status))
             {
-                throw new Exception("Order cannot be cancelled");
+                throw new Exception($"Order cannot be cancelled from {order.Status} status");
             }
 
-            order.Status = "Cancelled";
+            order.Status = OrderStatus.Cancelled;
             order.CancelledAt = DateTime.UtcNow;
             order.CancellationReason = cancelDto.Reason;
 
@@ -217,7 +218,7 @@ namespace ShopperBackend.Services
 
         private async Task<OrderDto> MapToDtoAsync(Order order)
         {
-            var itemTasks = order.OrderItems?.Select(MapOrderItemToDtoAsync) ?? new List<Task<OrderItemDto>>();
+            var itemTasks = order.OrderItems?.Select(item => MapOrderItemToDtoAsync(item, order.Status)) ?? new List<Task<OrderItemDto>>();
             var items = await Task.WhenAll(itemTasks);
 
             return new OrderDto
@@ -272,7 +273,7 @@ namespace ShopperBackend.Services
             };
         }
 
-        private async Task<OrderItemDto> MapOrderItemToDtoAsync(OrderItem item)
+        private async Task<OrderItemDto> MapOrderItemToDtoAsync(OrderItem item, string orderStatus)
         {
             var product = await _productRepository.GetByIdAsync(item.ProductId);
             ProductListDto productDto = null;
@@ -308,7 +309,7 @@ namespace ShopperBackend.Services
                 Discount = item.Discount,
                 Tax = item.Tax,
                 Total = item.Total,
-                Status = "Pending",
+                Status = orderStatus,  // Use the order's status instead of hardcoded "Pending"
                 Product = productDto
             };
         }
